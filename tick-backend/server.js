@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const { Resend } = require('resend');
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Process-Level Crash Handlers (must be registered before anything else) ───
 process.on('uncaughtException', (err) => {
@@ -380,6 +383,55 @@ app.get('/api/logs/:trackerId', async (req, res) => {
     } catch (err) {
         console.error(`[CRITICAL ERROR] Supabase telemetry logs fetch failed:`, err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// 9. SEND OTP DIRECTLY VIA RESEND
+app.post('/api/auth/send-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+    
+    try {
+        // Generate a magic link using Supabase Auth Admin
+        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+            type: 'magiclink',
+            email: email,
+        });
+
+        if (linkError) {
+            console.error('[AUTH ERROR] generateLink failed:', linkError);
+            return res.status(500).json({ success: false, error: linkError.message });
+        }
+        
+        // Extract the magic link
+        const authLink = linkData.properties.action_link;
+        
+        // Send email via Resend
+        const { data, error } = await resend.emails.send({
+            from: 'Tickk Auth <onboarding@resend.dev>', // Change to your verified domain (e.g., noreply@yourdomain.com)
+            to: [email],
+            subject: 'Your Tickk Login Link',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2>Welcome to Tickk</h2>
+                    <p>Click the secure link below to sign in to your account:</p>
+                    <a href="${authLink}" style="display:inline-block; padding:12px 24px; background-color:#000; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; margin:20px 0;">Sign In to Tickk</a>
+                    <p style="color:#666; font-size:14px;">If you didn't request this link, you can safely ignore this email.</p>
+                </div>
+            `
+        });
+
+        if (error) {
+            console.error('[RESEND ERROR] Failed to send email:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        res.status(200).json({ success: true, message: 'Login link sent successfully' });
+    } catch (err) {
+        console.error('[OTP ENDPOINT ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 });
 
