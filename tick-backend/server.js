@@ -348,8 +348,14 @@ app.post('/api/webhooks/billing', async (req, res) => {
 });
 
 // 7. DASHBOARD STATS — Frontend integration endpoint
-app.get('/api/stats/:userId', async (req, res) => {
+app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
     const { userId } = req.params;
+    
+    // Authorization check to ensure users can only fetch their own data
+    if (userId !== req.user_id) {
+        return res.status(403).json({ error: 'Forbidden: Access denied' });
+    }
+    
     try {
         const { data, error } = await supabase
             .from('trackers')
@@ -357,7 +363,7 @@ app.get('/api/stats/:userId', async (req, res) => {
                 *,
                 telemetry_logs (*)
             `)
-            .eq('user_id', userId)
+            .eq('user_id', req.user_id)
             .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -370,9 +376,24 @@ app.get('/api/stats/:userId', async (req, res) => {
 });
 
 // 8. TRACKER LOGS — Fetch telemetry timeline for a specific tracker
-app.get('/api/logs/:trackerId', async (req, res) => {
+app.get('/api/logs/:trackerId', requireUserAuth, async (req, res) => {
     const { trackerId } = req.params;
     try {
+        // Enforce ownership: Check if tracker belongs to the authenticated user
+        const { data: trackerData, error: trackerError } = await supabase
+            .from('trackers')
+            .select('user_id')
+            .eq('id', trackerId)
+            .single();
+            
+        if (trackerError || !trackerData) {
+            return res.status(404).json({ error: 'Tracker not found' });
+        }
+        
+        if (trackerData.user_id !== req.user_id) {
+            return res.status(403).json({ error: 'Forbidden: Access denied' });
+        }
+
         const { data, error } = await supabase
             .from('telemetry_logs')
             .select('*')
@@ -394,7 +415,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     if (!email) {
         return res.status(400).json({ success: false, error: 'Email is required' });
     }
-    
+
     try {
         // Generate a magic link using Supabase Auth Admin
         const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
@@ -406,13 +427,13 @@ app.post('/api/auth/send-otp', async (req, res) => {
             console.error('[AUTH ERROR] generateLink failed:', linkError);
             return res.status(500).json({ success: false, error: linkError.message });
         }
-        
+
         // Extract the magic link
         const authLink = linkData.properties.action_link;
-        
+
         // Send email via Resend
         const { data, error } = await resend.emails.send({
-            from: 'Tickk Auth <onboarding@resend.dev>', // Change to your verified domain (e.g., noreply@yourdomain.com)
+            from: 'Tickk Auth <alaaudin.ai@gmail.com>', // Change to your verified domain (e.g., noreply@yourdomain.com)
             to: [email],
             subject: 'Your Tickk Login Link',
             html: `
