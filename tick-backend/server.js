@@ -351,10 +351,12 @@ app.get('/api/stats/:userId', async (req, res) => {
             .from('trackers')
             .select('*')
             .eq('user_id', userId);
-
+        
         if (error) throw error;
-        res.status(200).json(data);
+        // Agar data empty bhi ho, tab bhi 200 return karo, crash mat ho
+        res.status(200).json(data || []); 
     } catch (err) {
+        console.error(`[CRITICAL ERROR] Supabase fetch failed:`, err);
         res.status(500).json({ error: err.message });
     }
 });
