@@ -412,7 +412,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
         // Send email via Resend
         const { data, error } = await resend.emails.send({
-            from: 'Tickk Auth <onboarding@resend.dev>', // Change to your verified domain (e.g., noreply@yourdomain.com)
+            from: 'Tickk Auth <noreply@qorvx.online>', // Change to your verified domain (e.g., noreply@yourdomain.com)
             to: [email],
             subject: 'Your Tickk Login Link',
             html: `
