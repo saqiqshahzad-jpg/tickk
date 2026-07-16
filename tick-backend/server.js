@@ -361,6 +361,24 @@ app.get('/api/stats/:userId', async (req, res) => {
     }
 });
 
+// 8. TRACKER LOGS — Fetch telemetry timeline for a specific tracker
+app.get('/api/logs/:trackerId', async (req, res) => {
+    const { trackerId } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('telemetry_logs')
+            .select('*')
+            .eq('tracker_id', trackerId)
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        res.status(200).json(data || []);
+    } catch (err) {
+        console.error(`[CRITICAL ERROR] Supabase telemetry logs fetch failed:`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
