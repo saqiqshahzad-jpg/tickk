@@ -3,6 +3,26 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 
+// ─── Process-Level Crash Handlers (must be registered before anything else) ───
+process.on('uncaughtException', (err) => {
+    console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        type: 'UNCAUGHT_EXCEPTION',
+        error: err.message,
+        stack: err.stack
+    }));
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        type: 'UNHANDLED_REJECTION',
+        error: reason instanceof Error ? reason.message : String(reason),
+        stack: reason instanceof Error ? reason.stack : undefined
+    }));
+});
+
 const app = express();
 
 // Enable CORS for your Vercel frontend domain
@@ -15,6 +35,12 @@ app.use(express.json({
         req.rawBody = buf;
     }
 }));
+
+// 1. Global Request Logger
+app.use((req, res, next) => {
+    console.log(`[TICKK-LOG] ${new Date().toISOString()} | Method: ${req.method} | URL: ${req.url}`);
+    next();
+});
 
 // Anti-self-open memory caches
 const senderIpCache = new Map();
@@ -213,7 +239,7 @@ app.get('/api/telemetry/open', async (req, res) => {
                         country = geoData.country;
                     }
                 }
-            } catch (gErr) { }
+            } catch (gErr) { console.error('Geo lookup failed:', gErr.message); }
         }
 
         // Update Tracker Metrics
@@ -267,7 +293,7 @@ app.get('/api/track/:tracker_id/click', async (req, res) => {
                 user_agent: userAgent
             }]);
         }
-    } catch (err) { }
+    } catch (err) { console.error('Click tracking error:', err.message); }
 
     return res.redirect(destinationUrl);
 });
@@ -317,5 +343,20 @@ app.post('/api/webhooks/billing', async (req, res) => {
     }
 });
 
+// 2. Global Error Handler
+app.use((err, req, res, next) => {
+    console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
+    res.status(500).send('Internal Server Error');
+});
+
+// ─── Server Startup ───
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`TICKK Core System Running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        type: 'SERVER_START',
+        port: PORT,
+        node_version: process.version,
+        env: process.env.NODE_ENV || 'development'
+    }));
+});
