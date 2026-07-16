@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const { Resend } = require('resend');
 
+console.log("[INIT] API Key loaded:", process.env.RESEND_API_KEY ? "Yes" : "No");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ─── Process-Level Crash Handlers (must be registered before anything else) ───
@@ -388,6 +389,7 @@ app.get('/api/logs/:trackerId', async (req, res) => {
 
 // 9. SEND OTP DIRECTLY VIA RESEND
 app.post('/api/auth/send-otp', async (req, res) => {
+    console.log(`[TICKK-LOG] Hit /api/auth/send-otp for email: ${req.body.email}`);
     const { email } = req.body;
     if (!email) {
         return res.status(400).json({ success: false, error: 'Email is required' });
