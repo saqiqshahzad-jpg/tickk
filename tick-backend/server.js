@@ -348,14 +348,8 @@ app.post('/api/webhooks/billing', async (req, res) => {
 });
 
 // 7. DASHBOARD STATS — Frontend integration endpoint
-app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
+app.get('/api/stats/:userId', async (req, res) => {
     const { userId } = req.params;
-    
-    // Authorization check to ensure users can only fetch their own data
-    if (userId !== req.user_id) {
-        return res.status(403).json({ error: 'Forbidden: Access denied' });
-    }
-    
     try {
         const { data, error } = await supabase
             .from('trackers')
@@ -363,12 +357,12 @@ app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
                 *,
                 telemetry_logs (*)
             `)
-            .eq('user_id', req.user_id)
+            .eq('user_id', userId)
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
         // Agar data empty bhi ho, tab bhi 200 return karo, crash mat ho
-        res.status(200).json(data || []); 
+        res.status(200).json(data || []);
     } catch (err) {
         console.error(`[CRITICAL ERROR] Supabase fetch failed:`, err);
         res.status(500).json({ error: err.message });
@@ -376,30 +370,15 @@ app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
 });
 
 // 8. TRACKER LOGS — Fetch telemetry timeline for a specific tracker
-app.get('/api/logs/:trackerId', requireUserAuth, async (req, res) => {
+app.get('/api/logs/:trackerId', async (req, res) => {
     const { trackerId } = req.params;
     try {
-        // Enforce ownership: Check if tracker belongs to the authenticated user
-        const { data: trackerData, error: trackerError } = await supabase
-            .from('trackers')
-            .select('user_id')
-            .eq('id', trackerId)
-            .single();
-            
-        if (trackerError || !trackerData) {
-            return res.status(404).json({ error: 'Tracker not found' });
-        }
-        
-        if (trackerData.user_id !== req.user_id) {
-            return res.status(403).json({ error: 'Forbidden: Access denied' });
-        }
-
         const { data, error } = await supabase
             .from('telemetry_logs')
             .select('*')
             .eq('tracker_id', trackerId)
             .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
         res.status(200).json(data || []);
     } catch (err) {
@@ -433,7 +412,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
         // Send email via Resend
         const { data, error } = await resend.emails.send({
-            from: 'Tickk Auth <alaaudin.ai@gmail.com>', // Change to your verified domain (e.g., noreply@yourdomain.com)
+            from: 'Tickk Auth <onboarding@resend.dev>', // Change to your verified domain (e.g., noreply@yourdomain.com)
             to: [email],
             subject: 'Your Tickk Login Link',
             html: `
