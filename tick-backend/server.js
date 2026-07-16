@@ -349,8 +349,12 @@ app.get('/api/stats/:userId', async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('trackers')
-            .select('*')
-            .eq('user_id', userId);
+            .select(`
+                *,
+                telemetry_logs (*)
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
         
         if (error) throw error;
         // Agar data empty bhi ho, tab bhi 200 return karo, crash mat ho
