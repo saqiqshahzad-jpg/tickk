@@ -343,6 +343,22 @@ app.post('/api/webhooks/billing', async (req, res) => {
     }
 });
 
+// 7. DASHBOARD STATS — Frontend integration endpoint
+app.get('/api/stats/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('trackers')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (error) throw error;
+        res.status(200).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
