@@ -390,17 +390,53 @@ app.get('/api/logs/:trackerId', async (req, res) => {
 // 9. SEND OTP DIRECTLY VIA RESEND
 app.post('/api/auth/send-otp', async (req, res) => {
     console.log(`[TICKK-LOG] Hit /api/auth/send-otp for email: ${req.body.email}`);
-    const { email } = req.body;
+    const { email, password, name } = req.body;
     if (!email) {
         return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
     try {
-        // Generate a magic link using Supabase Auth Admin
-        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-            type: 'magiclink',
-            email: email,
-        });
+        // --- Duplicate Email Handling ---
+        // Note: supabase.auth.admin.getUserByEmail() doesn't exist in the JS SDK,
+        // so we look up the user's ID via the profiles table first.
+        const { data: profile } = await supabase.from('profiles').select('id').ilike('email', email).maybeSingle();
+        
+        if (profile) {
+            const { data: adminData } = await supabase.auth.admin.getUserById(profile.id);
+            const user = adminData?.user;
+            
+            // Check if user is confirmed
+            if (user && (user.email_confirmed_at || user.confirmed_at)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: 'USER_EXISTS', 
+                    message: 'User already exists and is confirmed.' 
+                });
+            }
+        }
+        // --------------------------------
+
+        let linkData, linkError;
+
+        // If password is provided, it's a signup request
+        if (password) {
+            const result = await supabase.auth.admin.generateLink({
+                type: 'signup',
+                email: email,
+                password: password,
+                data: { name: name }
+            });
+            linkData = result.data;
+            linkError = result.error;
+        } else {
+            // Otherwise, just a magic link login
+            const result = await supabase.auth.admin.generateLink({
+                type: 'magiclink',
+                email: email,
+            });
+            linkData = result.data;
+            linkError = result.error;
+        }
 
         if (linkError) {
             console.error('[AUTH ERROR] generateLink failed:', linkError);
