@@ -387,6 +387,73 @@ app.get('/api/logs/:trackerId', async (req, res) => {
     }
 });
 
+// 11. ADMIN APPROVE FEEDBACK ENDPOINT
+app.post('/api/admin/approve-feedback', async (req, res) => {
+    const { feedbackId } = req.body;
+    if (!feedbackId) return res.status(400).json({ success: false, error: 'feedbackId is required' });
+
+    try {
+        // Update feedback status
+        const { data: feedback, error: fError } = await supabase
+            .from('feedback')
+            .update({ status: 'approved' })
+            .eq('id', feedbackId)
+            .select()
+            .single();
+
+        if (fError || !feedback) {
+            return res.status(500).json({ success: false, error: fError?.message || 'Feedback not found' });
+        }
+
+        // Increment user credits by 99
+        const { data: profile, error: pError } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', feedback.user_id)
+            .single();
+
+        if (pError || !profile) {
+            return res.status(500).json({ success: false, error: pError?.message || 'Profile not found' });
+        }
+
+        const newCredits = profile.credits + 99;
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ credits: newCredits })
+            .eq('id', feedback.user_id);
+
+        if (updateError) {
+            return res.status(500).json({ success: false, error: updateError.message });
+        }
+
+        res.json({ success: true, message: 'Feedback approved and 99 credits added.' });
+    } catch (err) {
+        console.error('[APPROVE FEEDBACK ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
+// 12. CLAIM REWARD ENDPOINT
+app.post('/api/profile/claim-feedback-popup', requireUserAuth, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('feedback')
+            .update({ reward_claimed: true })
+            .eq('user_id', req.user_id)
+            .eq('status', 'approved')
+            .eq('reward_claimed', false);
+
+        if (error) {
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        res.json({ success: true, message: 'Reward claimed successfully.' });
+    } catch (err) {
+        console.error('[CLAIM REWARD ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 // 9. SEND OTP DIRECTLY VIA RESEND
 app.post('/api/auth/send-otp', async (req, res) => {
     console.log(`[TICKK-LOG] Hit /api/auth/send-otp for email: ${req.body.email}`);

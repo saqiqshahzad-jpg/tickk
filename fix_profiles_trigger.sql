@@ -18,7 +18,7 @@ BEGIN
     NEW.id,
     NEW.email,
     'free',          -- default free tier
-    501,             -- beta starter credits
+    301,             -- beta starter credits
     NOW()
   );
   RETURN NEW;
@@ -47,7 +47,7 @@ GRANT USAGE ON SCHEMA public TO authenticated;
 -- ─── STEP 4: Backfill existing users who have no profile ────
 -- (Safe: ON CONFLICT DO NOTHING prevents duplicates)
 INSERT INTO public.profiles (id, email, plan, credits, created_at)
-SELECT id, email, 'free', 501, created_at
+SELECT id, email, 'free', 301, created_at
 FROM auth.users
 WHERE id NOT IN (SELECT id FROM public.profiles)
 ON CONFLICT (id) DO NOTHING;
