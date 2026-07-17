@@ -437,6 +437,56 @@ app.post('/api/auth/send-otp', async (req, res) => {
     }
 });
 
+// 10. PASSWORD RESET VIA RESEND (Link Sent flow — mirrors send-otp)
+app.post('/api/auth/reset-password', async (req, res) => {
+    console.log(`[TICKK-LOG] Hit /api/auth/reset-password for email: ${req.body.email}`);
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required' });
+    }
+
+    try {
+        // Generate a recovery link using Supabase Auth Admin
+        const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+            type: 'recovery',
+            email: email,
+        });
+
+        if (linkError) {
+            console.error('[AUTH ERROR] generateLink (recovery) failed:', linkError);
+            return res.status(500).json({ success: false, error: linkError.message });
+        }
+
+        // Extract the recovery link
+        const resetLink = linkData.properties.action_link;
+
+        // Send email via Resend
+        const { data, error } = await resend.emails.send({
+            from: 'Tickk Auth <noreply@qorvx.online>',
+            to: [email],
+            subject: 'Reset Your Tickk Password',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2>Reset your password</h2>
+                    <p>We received a request to reset the password for your Tickk account. Click the secure link below to set a new password:</p>
+                    <a href="${resetLink}" style="display:inline-block; padding:12px 24px; background-color:#000; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold; margin:20px 0;">Reset Password</a>
+                    <p style="color:#666; font-size:14px;">This link will expire shortly. If you didn't request a password reset, you can safely ignore this email.</p>
+                </div>
+            `
+        });
+
+        if (error) {
+            console.error('[RESEND ERROR] Failed to send reset email:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        res.status(200).json({ success: true, message: 'Password reset link sent successfully' });
+    } catch (err) {
+        console.error('[RESET PASSWORD ENDPOINT ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
