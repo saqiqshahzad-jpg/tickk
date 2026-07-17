@@ -331,12 +331,12 @@ app.post('/api/webhooks/billing', async (req, res) => {
 
         if (eventName === 'subscription_created') {
             await supabase.from('profiles').update({
-                plan_tier: 'Growth Core Access',
-                resource_credits: 10000
+                plan: 'growth',
+                credits: 10000
             }).eq('id', userId);
         } else if (eventName === 'subscription_payment_failed' || eventName === 'subscription_expired' || eventName === 'subscription_cancelled') {
             await supabase.from('profiles').update({
-                plan_tier: 'Telemetry Starter'
+                plan: 'free'
             }).eq('id', userId);
         }
 
