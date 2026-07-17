@@ -454,6 +454,26 @@ app.post('/api/profile/claim-feedback-popup', requireUserAuth, async (req, res) 
     }
 });
 
+// 13. FETCH LOGGED-IN USER DETAILS
+app.get('/api/auth/me', requireUserAuth, async (req, res) => {
+    try {
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', req.user_id)
+            .single();
+
+        if (error || !profile) {
+            return res.status(404).json({ success: false, error: 'User profile not found' });
+        }
+
+        res.json({ success: true, user: profile });
+    } catch (err) {
+        console.error('[AUTH ME ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 // 9. SEND OTP DIRECTLY VIA RESEND
 app.post('/api/auth/send-otp', async (req, res) => {
     console.log(`[TICKK-LOG] Hit /api/auth/send-otp for email: ${req.body.email}`);
