@@ -17,9 +17,9 @@ BEGIN
   VALUES (
     NEW.id,
     NEW.email,
-    'free',          -- default free tier
+    'free',          -- default free  tier
     301,             -- beta starter credits
-    NOW()
+    NOW()commit
   );
   RETURN NEW;
 END;
