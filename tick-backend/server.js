@@ -364,8 +364,14 @@ app.post('/api/webhooks/billing', async (req, res) => {
 });
 
 // 7. DASHBOARD STATS — Frontend integration endpoint
-app.get('/api/stats/:userId', async (req, res) => {
+app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
     const { userId } = req.params;
+    
+    // Strict isolation check
+    if (req.user_id !== userId) {
+        return res.status(403).json({ error: 'Forbidden: You can only access your own stats' });
+    }
+
     try {
         const { data, error } = await supabase
             .from('trackers')
@@ -400,6 +406,42 @@ app.get('/api/logs/:trackerId', async (req, res) => {
     } catch (err) {
         console.error(`[CRITICAL ERROR] Supabase telemetry logs fetch failed:`, err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// 8b. PERFORMANCE HEATMAP — Exact timestamps array strictly filtered for user
+app.get('/api/analytics/performance', requireUserAuth, async (req, res) => {
+    try {
+        // Step 1: Securely get only THIS user's trackers
+        const { data: trackers, error: trackerErr } = await supabase
+            .from('trackers')
+            .select('id')
+            .eq('user_id', req.user_id);
+
+        if (trackerErr) throw trackerErr;
+
+        if (!trackers || trackers.length === 0) {
+            return res.status(200).json({ success: true, timestamps: [] });
+        }
+
+        const trackerIds = trackers.map(t => t.id);
+
+        // Step 2: Fetch created_at for ONLY those trackers
+        const { data: logs, error: logsErr } = await supabase
+            .from('telemetry_logs')
+            .select('created_at')
+            .in('tracker_id', trackerIds)
+            .order('created_at', { ascending: true });
+
+        if (logsErr) throw logsErr;
+
+        // Extract raw array of timestamps
+        const timestamps = logs.map(log => log.created_at);
+        
+        res.status(200).json({ success: true, timestamps });
+    } catch (err) {
+        console.error(`[CRITICAL ERROR] Performance heatmap fetch failed:`, err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
