@@ -167,6 +167,95 @@ app.post('/api/trackers/register', requireApiKeyAuth, async (req, res) => {
     }
 });
 
+// 1b. OUTBOUND EMAIL CAMPAIGN VALIDATION ENDPOINT (Atomic Credit Verification & Dispatch)
+app.post('/api/track/dispatch', requireUserAuth, async (req, res) => {
+    const { recipient, subject, link_url } = req.body;
+
+    if (!recipient || !subject) {
+        return res.status(400).json({ success: false, error: 'Recipient and Subject are mandatory parameters' });
+    }
+
+    try {
+        // Step 1: Atomic Credit Verification Engine
+        const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', req.user_id)
+            .single();
+
+        if (profileErr || !profile) {
+            return res.status(500).json({ success: false, error: 'Failed to retrieve user profile for credit verification' });
+        }
+
+        const credits = profile.credits || 0;
+        let isLocked = false;
+
+        // Step 2: Conditional Credit Multiplier & Deduction
+        if (credits > 0) {
+            const { error: deductErr } = await supabase
+                .from('profiles')
+                .update({ credits: credits - 1 })
+                .eq('id', req.user_id);
+
+            if (deductErr) {
+                return res.status(500).json({ success: false, error: 'Transaction failed: Could not deduct credit' });
+            }
+        } else {
+            // Step 3: Zero-Credit Soft Lock Protocol
+            isLocked = true;
+        }
+
+        // Insert into trackers pipeline (allow dispatch data pipeline logs for dashboard streams)
+        const { data, error } = await supabase
+            .from('trackers')
+            .insert([{
+                user_id: req.user_id,
+                recipient,
+                subject,
+                link_url: link_url || null,
+                is_locked: isLocked // Flag status context
+            }])
+            .select()
+            .single();
+
+        if (error) return res.status(500).json({ success: false, error: error.message });
+
+        // Cache sender identity
+        let senderIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+        if (senderIp && senderIp.includes(',')) senderIp = senderIp.split(',')[0].trim();
+        if (senderIp) {
+            senderIpCache.set(data.id, senderIp);
+            setTimeout(() => senderIpCache.delete(data.id), 24 * 60 * 60 * 1000);
+        }
+
+        // Security Rule Enforcement: Return response without tracking params if locked
+        if (isLocked) {
+            return res.status(201).json({ 
+                success: true, 
+                message: 'Dispatch allowed but tracking structurally disabled (Zero Credits).',
+                tracker_id: data.id,
+                tracking: null
+            });
+        }
+
+        // Normal dispatch pipeline: generate tracking parameters link/pixel injection
+        const origin = req.headers.origin || 'https://tickk.io';
+        const pixelUrl = `${origin}/api/track/${data.id}/pixel.png`;
+        const trackedLink = data.link_url ? `${origin}/api/track/${data.id}/click?url=${encodeURIComponent(data.link_url)}` : null;
+
+        res.status(201).json({ 
+            success: true, 
+            tracker_id: data.id,
+            tracking: {
+                pixelUrl,
+                trackedLink
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // 2. FETCH ENDPOINT — Return Isolated Data to Frontend
 app.get('/api/trackers', requireUserAuth, async (req, res) => {
     try {
@@ -221,6 +310,11 @@ app.get('/api/telemetry/open', async (req, res) => {
     try {
         const { data: tracker, error: fError } = await supabase.from('trackers').select('*').eq('id', trackerId).maybeSingle();
         if (fError || !tracker) return returnBeacon(res);
+
+        // Security Rule: If tracker is structurally locked (Zero-Credit), do not generate/fire tracking initialization
+        if (tracker.is_locked) {
+            return returnBeacon(res);
+        }
 
         let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
         if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
@@ -295,6 +389,11 @@ app.get('/api/track/:tracker_id/click', async (req, res) => {
     try {
         const { data: tracker } = await supabase.from('trackers').select('*').eq('id', trackerId).maybeSingle();
         if (tracker) {
+            // Security Rule: If tracker is structurally locked, skip tracking logic and just redirect
+            if (tracker.is_locked) {
+                return res.redirect(destinationUrl);
+            }
+
             await supabase.from('trackers').update({
                 status: 'OPENED',
                 click_count: tracker.click_count + 1,
