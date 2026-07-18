@@ -31,7 +31,7 @@ const app = express();
 
 // Enable CORS for your Vercel frontend domain
 app.use(cors({
-    origin: '*', // Production mein yahan apna specific Vercel URL daal dena security ke liye
+    origin: true, // Echo origin to allow credentials and Authorization header
     credentials: true
 }));
 app.use(express.json({
