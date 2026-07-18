@@ -19,7 +19,7 @@ BEGIN
     NEW.email,
     'free',          -- default free  tier
     301,             -- beta starter credits
-    NOW()commit
+    NOW()
   );
   RETURN NEW;
 END;
