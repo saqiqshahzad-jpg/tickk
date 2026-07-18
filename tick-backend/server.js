@@ -183,6 +183,22 @@ app.get('/api/trackers', requireUserAuth, async (req, res) => {
     }
 });
 
+// 2b. FETCH API KEYS — Return Isolated Data to Frontend
+app.get('/api/keys', requireUserAuth, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('api_keys')
+            .select('*')
+            .eq('user_id', req.user_id)
+            .order('created_at', { ascending: false });
+
+        if (error) return res.status(500).json({ success: false, error: error.message });
+        res.json({ success: true, api_keys: data });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // 3. PIXEL GATEWAY — CDN Cache Breaker Redirect
 app.get('/api/track/:tracker_id/pixel.png', (req, res) => {
     const trackerId = req.params.tracker_id;
