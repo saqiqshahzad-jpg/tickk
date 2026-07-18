@@ -445,6 +445,49 @@ app.get('/api/analytics/performance', requireUserAuth, async (req, res) => {
     }
 });
 
+// 8c. ACTIVITY DISTRIBUTION — When you sent your messages
+app.get('/api/performance/activity-distribution', requireUserAuth, async (req, res) => {
+    try {
+        // Fetch all trackers (sent messages) for the logged-in user
+        const { data: trackers, error: trackerErr } = await supabase
+            .from('trackers')
+            .select('created_at')
+            .eq('user_id', req.user_id);
+
+        if (trackerErr) throw trackerErr;
+
+        if (!trackers || trackers.length === 0) {
+            return res.status(200).json({ success: true, distribution: [] });
+        }
+
+        const distributionMap = new Map();
+
+        trackers.forEach(tracker => {
+            const date = new Date(tracker.created_at);
+            const day = date.getDay(); // 0 (Sunday) to 6 (Saturday)
+            const hour = date.getHours(); // 0 to 23
+
+            const key = `${day}-${hour}`;
+            if (distributionMap.has(key)) {
+                distributionMap.set(key, distributionMap.get(key) + 1);
+            } else {
+                distributionMap.set(key, 1);
+            }
+        });
+
+        const distribution = [];
+        distributionMap.forEach((count, key) => {
+            const [day, hour] = key.split('-').map(Number);
+            distribution.push({ day, hour, count });
+        });
+
+        res.status(200).json({ success: true, distribution });
+    } catch (err) {
+        console.error(`[CRITICAL ERROR] Activity distribution fetch failed:`, err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // 11. ADMIN APPROVE FEEDBACK ENDPOINT
 app.post('/api/admin/approve-feedback', async (req, res) => {
     const { feedbackId } = req.body;
