@@ -18,7 +18,7 @@ BEGIN
     NEW.id,
     NEW.email,
     'free',          -- default free  tier
-    301,             -- beta starter credits
+    301,             -- beta starter  credits
     NOW()
   );
   RETURN NEW;
