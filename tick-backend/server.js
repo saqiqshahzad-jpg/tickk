@@ -833,9 +833,6 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
 
   const { subject, category, message } = req.body;
   
-  if (!message || message.trim().length < 10) {
-    return res.status(400).json({ error: "Message must be at least 10 characters long" });
-  }
 
   const spamKeywords = ["spam", "test", "fake"];
   const lowerMessage = message.toLowerCase();
