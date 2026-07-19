@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Fix permissions (optional if using service_role, but good for completeness)
+-- Fix permissions (optional if using service_role, but   good for completeness)
 GRANT ALL ON public.tickets TO service_role;
 GRANT ALL ON public.tickets TO postgres;
 GRANT ALL ON public.tickets TO authenticated;
