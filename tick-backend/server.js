@@ -810,6 +810,63 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 });
 
+app.get("/api/tickets", requireUserAuth, async (req, res) => {
+  const userId = req.user_id;
+
+  const { data: tickets, error } = await supabase
+    .from('tickets')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  res.json(tickets || []);
+});
+
+app.post("/api/feedback", requireUserAuth, async (req, res) => {
+  const userId = req.user_id;
+
+  const { subject, category, message } = req.body;
+  
+  const { data: ticket, error } = await supabase
+    .from('tickets')
+    .insert([{
+      user_id: userId,
+      subject,
+      category,
+      message,
+      status: 'rewarded'
+    }])
+    .select()
+    .single();
+
+  const insertedTicket = ticket || {
+    id: "tk_" + Math.random().toString(36).substr(2, 9),
+    userId,
+    subject,
+    category,
+    message,
+    status: 'rewarded',
+    createdAt: new Date().toISOString()
+  };
+
+  let newCredits = 0;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('credits')
+    .eq('id', userId)
+    .single();
+
+  if (profile) {
+    newCredits = (profile.credits || 0) + 99;
+    await supabase
+      .from('profiles')
+      .update({ credits: newCredits })
+      .eq('id', userId);
+  }
+
+  res.status(201).json({ ticket: insertedTicket, newCredits });
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
