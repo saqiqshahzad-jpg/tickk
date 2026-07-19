@@ -860,6 +860,26 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
   res.status(201).json({ ticket });
 });
 
+app.patch("/api/feedback/:id/notify", requireUserAuth, async (req, res) => {
+  const feedbackId = req.params.id;
+  const userId = req.user_id;
+
+  const { data, error } = await supabase
+    .from('feedback')
+    .update({ is_notified: true })
+    .eq('id', feedbackId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error || !data) {
+    console.error('[NOTIFY FEEDBACK ERROR]', error);
+    return res.status(500).json({ error: "Failed to update notification status", details: error?.message || 'Unknown error' });
+  }
+
+  res.json({ success: true, feedback: data });
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
