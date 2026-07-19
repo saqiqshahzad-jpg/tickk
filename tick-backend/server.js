@@ -595,7 +595,7 @@ app.post('/api/admin/approve-feedback', async (req, res) => {
     try {
         // Update feedback status
         const { data: feedback, error: fError } = await supabase
-            .from('feedback')
+            .from('tickets')
             .update({ status: 'approved' })
             .eq('id', feedbackId)
             .select()
@@ -637,7 +637,7 @@ app.post('/api/admin/approve-feedback', async (req, res) => {
 app.post('/api/profile/claim-feedback-popup', requireUserAuth, async (req, res) => {
     try {
         const { error } = await supabase
-            .from('feedback')
+            .from('tickets')
             .update({ reward_claimed: true })
             .eq('user_id', req.user_id)
             .eq('status', 'approved')
@@ -827,6 +827,16 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
 
   const { subject, category, message } = req.body;
   
+  if (!message || message.trim().length < 10) {
+    return res.status(400).json({ error: "Message must be at least 10 characters long" });
+  }
+
+  const spamKeywords = ["spam", "test", "fake"];
+  const lowerMessage = message.toLowerCase();
+  if (spamKeywords.some(kw => lowerMessage.includes(kw))) {
+    return res.status(400).json({ error: "Invalid or spam content detected" });
+  }
+
   const { data: ticket, error } = await supabase
     .from('tickets')
     .insert([{
@@ -834,37 +844,16 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
       subject,
       category,
       message,
-      status: 'rewarded'
+      status: 'submitted'
     }])
     .select()
     .single();
 
-  const insertedTicket = ticket || {
-    id: "tk_" + Math.random().toString(36).substr(2, 9),
-    userId,
-    subject,
-    category,
-    message,
-    status: 'rewarded',
-    createdAt: new Date().toISOString()
-  };
-
-  let newCredits = 0;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('credits')
-    .eq('id', userId)
-    .single();
-
-  if (profile) {
-    newCredits = (profile.credits || 0) + 99;
-    await supabase
-      .from('profiles')
-      .update({ credits: newCredits })
-      .eq('id', userId);
+  if (error || !ticket) {
+    return res.status(500).json({ error: "Failed to submit feedback" });
   }
 
-  res.status(201).json({ ticket: insertedTicket, newCredits });
+  res.status(201).json({ ticket });
 });
 
 // 2. Global Error Handler
