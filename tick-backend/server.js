@@ -812,7 +812,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 });
 
-app.get("/api/tickets", requireUserAuth, async (req, res) => {
+app.get("/api/feedback", requireUserAuth, async (req, res) => {
   const userId = req.user_id;
 
   const { data: tickets, error } = await supabase
