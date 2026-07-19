@@ -602,7 +602,8 @@ app.post('/api/admin/approve-feedback', async (req, res) => {
             .single();
 
         if (fError || !feedback) {
-            return res.status(500).json({ success: false, error: fError?.message || 'Feedback not found' });
+            console.error('[APPROVE FEEDBACK ERROR]', fError);
+            return res.status(500).json({ success: false, error: fError?.message || 'Feedback not found', details: fError });
         }
 
         // Increment user credits by 99
@@ -644,7 +645,8 @@ app.post('/api/profile/claim-feedback-popup', requireUserAuth, async (req, res) 
             .eq('reward_claimed', false);
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            console.error('[CLAIM FEEDBACK ERROR]', error);
+            return res.status(500).json({ success: false, error: error.message, details: error });
         }
 
         res.json({ success: true, message: 'Reward claimed successfully.' });
@@ -819,6 +821,10 @@ app.get("/api/tickets", requireUserAuth, async (req, res) => {
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
+  if (error) {
+    console.error('[FETCH TICKETS ERROR]', error);
+  }
+
   res.json(tickets || []);
 });
 
@@ -850,7 +856,8 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
     .single();
 
   if (error || !ticket) {
-    return res.status(500).json({ error: "Failed to submit feedback" });
+    console.error('[FEEDBACK INSERT ERROR]', error);
+    return res.status(500).json({ error: "Failed to submit feedback", details: error?.message || 'Unknown error' });
   }
 
   res.status(201).json({ ticket });
