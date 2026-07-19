@@ -595,7 +595,7 @@ app.post('/api/admin/approve-feedback', async (req, res) => {
     try {
         // Update feedback status
         const { data: feedback, error: fError } = await supabase
-            .from('tickets')
+            .from('feedback')
             .update({ status: 'approved' })
             .eq('id', feedbackId)
             .select()
@@ -638,7 +638,7 @@ app.post('/api/admin/approve-feedback', async (req, res) => {
 app.post('/api/profile/claim-feedback-popup', requireUserAuth, async (req, res) => {
     try {
         const { error } = await supabase
-            .from('tickets')
+            .from('feedback')
             .update({ reward_claimed: true })
             .eq('user_id', req.user_id)
             .eq('status', 'approved')
@@ -816,7 +816,7 @@ app.get("/api/tickets", requireUserAuth, async (req, res) => {
   const userId = req.user_id;
 
   const { data: tickets, error } = await supabase
-    .from('tickets')
+    .from('feedback')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -844,7 +844,7 @@ app.post("/api/feedback", requireUserAuth, async (req, res) => {
   }
 
   const { data: ticket, error } = await supabase
-    .from('tickets')
+    .from('feedback')
     .insert([{
       user_id: userId,
       subject,
