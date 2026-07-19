@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     message TEXT NOT NULL,
     status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted', 'approved', 'resolved')),
     reward_claimed BOOLEAN DEFAULT false,
+    is_notified BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
