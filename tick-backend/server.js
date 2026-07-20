@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const dns = require('dns');
 const { Resend } = require('resend');
 
 console.log("[INIT] API Key loaded:", process.env.RESEND_API_KEY ? "Yes" : "No");
@@ -1000,6 +1001,128 @@ app.patch("/api/feedback/:id/notify", requireUserAuth, async (req, res) => {
   }
 
   res.json({ success: true, feedback: data });
+});
+
+// ==========================================
+// CUSTOM DOMAIN ROUTES
+// ==========================================
+
+app.post('/api/domains/add', requireUserAuth, async (req, res) => {
+    const { domain_name } = req.body;
+    if (!domain_name) {
+        return res.status(400).json({ success: false, error: 'Domain name is required' });
+    }
+
+    try {
+        const verificationToken = 'tickk-verify-' + crypto.randomBytes(16).toString('hex');
+        
+        const { data, error } = await supabase
+            .from('custom_domains')
+            .insert([{
+                user_id: req.user_id,
+                domain_name,
+                verification_token: verificationToken
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[DOMAIN ADD ERROR]', error);
+            if (error.code === '23505') { // Unique violation
+                return res.status(400).json({ success: false, error: 'Domain already exists' });
+            }
+            return res.status(500).json({ success: false, error: 'Failed to add domain' });
+        }
+
+        res.status(201).json({
+            success: true,
+            domain: data,
+            instructions: {
+                cname: {
+                    name: 'track',
+                    target: 'tickk-backend.onrender.com'
+                },
+                txt: {
+                    name: '_tickk-challenge',
+                    target: verificationToken
+                }
+            }
+        });
+    } catch (err) {
+        console.error('[DOMAIN ADD EXCEPTION]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
+app.post('/api/domains/verify', requireUserAuth, async (req, res) => {
+    const { domain_name } = req.body;
+    if (!domain_name) {
+        return res.status(400).json({ success: false, error: 'Domain name is required' });
+    }
+
+    try {
+        const { data: domainRec, error: dbErr } = await supabase
+            .from('custom_domains')
+            .select('*')
+            .eq('domain_name', domain_name)
+            .eq('user_id', req.user_id)
+            .single();
+
+        if (dbErr || !domainRec) {
+            return res.status(404).json({ success: false, error: 'Domain not found' });
+        }
+
+        if (domainRec.is_verified) {
+            return res.json({ success: true, verified: true, message: 'Domain is already verified' });
+        }
+
+        let isCnameValid = false;
+        let isTxtValid = false;
+
+        // Verify CNAME
+        try {
+            const cnameRecords = await dns.promises.resolveCname(`track.${domain_name}`);
+            if (cnameRecords.includes('tickk-backend.onrender.com')) {
+                isCnameValid = true;
+            }
+        } catch (dnsErr) {
+            console.error(`[DNS CNAME ERROR] ${domain_name}:`, dnsErr.message);
+        }
+
+        // Verify TXT
+        try {
+            const txtRecords = await dns.promises.resolveTxt(`_tickk-challenge.${domain_name}`);
+            const flattenedTxt = txtRecords.map(t => t.join('')).flat();
+            if (flattenedTxt.includes(domainRec.verification_token)) {
+                isTxtValid = true;
+            }
+        } catch (dnsErr) {
+            console.error(`[DNS TXT ERROR] ${domain_name}:`, dnsErr.message);
+        }
+
+        if (isCnameValid && isTxtValid) {
+            const { error: updateErr } = await supabase
+                .from('custom_domains')
+                .update({ is_verified: true })
+                .eq('id', domainRec.id);
+
+            if (updateErr) {
+                return res.status(500).json({ success: false, error: 'Failed to update verification status' });
+            }
+
+            return res.json({ success: true, verified: true, message: 'Domain verified successfully' });
+        } else {
+            return res.json({ 
+                success: true, 
+                verified: false, 
+                error: 'DNS records not propagated yet or incorrect',
+                details: { cname: isCnameValid, txt: isTxtValid }
+            });
+        }
+    } catch (err) {
+        console.error('[DOMAIN VERIFY EXCEPTION]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
 });
 
 // 2. Global Error Handler
