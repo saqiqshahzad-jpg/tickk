@@ -131,6 +131,15 @@ app.get('/', (req, res) => {
     res.status(200).send('TICKK Telemetry Engine Node: Operational');
 });
 
+app.get('/:verification_file.html', (req, res, next) => {
+    const token = process.env.GOOGLE_SITE_VERIFICATION_TOKEN;
+    if (token && req.params.verification_file === token) {
+        res.setHeader('Content-Type', 'text/html');
+        return res.status(200).send(`google-site-verification: ${token}.html`);
+    }
+    next();
+});
+
 // ==========================================
 // OAUTH2 FLOWS (Google & Outlook)
 // ==========================================
@@ -142,7 +151,7 @@ app.get('/api/auth/google', (req, res) => {
     if (!userId) return res.status(400).send("userId is required");
     
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/auth/google/callback` : 'https://tickk-backend.onrender.com/api/auth/google/callback';
+    const redirectUri = 'https://tickk-backend.onrender.com/api/auth/google/callback';
     const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email');
     
     const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
@@ -160,7 +169,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     try {
         const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
         const userId = decodedState.userId;
-        const redirectUri = process.env.BACKEND_URL ? `${process.env.BACKEND_URL}/api/auth/google/callback` : 'https://tickk-backend.onrender.com/api/auth/google/callback';
+        const redirectUri = 'https://tickk-backend.onrender.com/api/auth/google/callback';
         
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
