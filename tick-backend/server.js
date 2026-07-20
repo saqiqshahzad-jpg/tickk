@@ -131,6 +131,119 @@ app.get('/', (req, res) => {
     res.status(200).send('TICKK Telemetry Engine Node: Operational');
 });
 
+// ==========================================
+// OAUTH2 FLOWS (Google & Outlook)
+// ==========================================
+const FRONTEND_DASHBOARD_URL = process.env.FRONTEND_DASHBOARD_URL || 'http://localhost:5173/dashboard';
+
+// --- GOOGLE OAUTH ---
+app.get('/api/auth/google', (req, res) => {
+    const userId = req.query.userId;
+    if (!userId) return res.status(400).send("userId is required");
+    
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email');
+    
+    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
+    
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
+    
+    res.redirect(authUrl);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+    const { code, state, error } = req.query;
+    if (error) return res.redirect(`${FRONTEND_DASHBOARD_URL}?error=${error}`);
+    if (!code || !state) return res.redirect(`${FRONTEND_DASHBOARD_URL}?error=invalid_request`);
+    
+    try {
+        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+        const userId = decodedState.userId;
+        const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+        
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: process.env.GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: redirectUri
+            })
+        });
+        const tokens = await tokenResponse.json();
+        
+        if (!tokens.access_token) throw new Error("Failed to retrieve access token");
+        
+        await supabase.from('profiles').update({
+            google_access_token: tokens.access_token,
+            google_refresh_token: tokens.refresh_token || null,
+            auth_provider: 'google'
+        }).eq('id', userId);
+        
+        res.redirect(`${FRONTEND_DASHBOARD_URL}?token=google_connected`);
+    } catch (err) {
+        console.error("Google OAuth Error:", err);
+        res.redirect(`${FRONTEND_DASHBOARD_URL}?error=oauth_failed`);
+    }
+});
+
+// --- OUTLOOK OAUTH ---
+app.get('/api/auth/outlook', (req, res) => {
+    const userId = req.query.userId;
+    if (!userId) return res.status(400).send("userId is required");
+    
+    const clientId = process.env.OUTLOOK_CLIENT_ID;
+    const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/outlook/callback`;
+    const scope = encodeURIComponent('offline_access Mail.Send User.Read');
+    
+    const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
+    
+    const authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${scope}&state=${state}`;
+    
+    res.redirect(authUrl);
+});
+
+app.get('/api/auth/outlook/callback', async (req, res) => {
+    const { code, state, error } = req.query;
+    if (error) return res.redirect(`${FRONTEND_DASHBOARD_URL}?error=${error}`);
+    if (!code || !state) return res.redirect(`${FRONTEND_DASHBOARD_URL}?error=invalid_request`);
+    
+    try {
+        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+        const userId = decodedState.userId;
+        const redirectUri = `${req.protocol}://${req.get('host')}/api/auth/outlook/callback`;
+        
+        const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: process.env.OUTLOOK_CLIENT_ID,
+                client_secret: process.env.OUTLOOK_CLIENT_SECRET,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: redirectUri
+            })
+        });
+        const tokens = await tokenResponse.json();
+        
+        if (!tokens.access_token) throw new Error("Failed to retrieve access token");
+        
+        await supabase.from('profiles').update({
+            outlook_access_token: tokens.access_token,
+            outlook_refresh_token: tokens.refresh_token || null,
+            auth_provider: 'outlook'
+        }).eq('id', userId);
+        
+        res.redirect(`${FRONTEND_DASHBOARD_URL}?token=outlook_connected`);
+    } catch (err) {
+        console.error("Outlook OAuth Error:", err);
+        res.redirect(`${FRONTEND_DASHBOARD_URL}?error=oauth_failed`);
+    }
+});
+
 // 1. REGISTER ENDPOINT — Programmatic Script Entry (cold_blast.py integration)
 app.post('/api/trackers/register', requireApiKeyAuth, async (req, res) => {
     const { recipient, subject, link_url } = req.body;
