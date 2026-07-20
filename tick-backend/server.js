@@ -135,7 +135,7 @@ app.get('/:verification_file.html', (req, res, next) => {
     const token = process.env.GOOGLE_SITE_VERIFICATION_TOKEN;
     if (token && req.params.verification_file === token) {
         res.setHeader('Content-Type', 'text/html');
-        return res.status(200).send(`google-site-verification: ${token}.html`);
+        return res.status(200).send(`google-site-verification: ${req.params.verification_file}.html`);
     }
     next();
 });
