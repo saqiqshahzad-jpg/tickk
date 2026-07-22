@@ -1128,27 +1128,78 @@ app.post('/api/domains/verify', requireUserAuth, async (req, res) => {
 // ==========================================
 // CHROME EXTENSION API
 // ==========================================
+app.post('/api/extension/auth-token-exchange', async (req, res) => {
+    try {
+        const { accessToken } = req.body;
+        if (!accessToken) {
+            return res.status(400).json({ success: false, error: 'Missing accessToken' });
+        }
+
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(accessToken);
+        if (authErr || !user) {
+            return res.status(401).json({ success: false, error: 'Invalid access token' });
+        }
+
+        const userId = user.id;
+
+        let { data: apiKeyData, error: keyErr } = await supabase
+            .from('api_keys')
+            .select('token')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        let apiKey = apiKeyData?.token;
+
+        if (!apiKey) {
+            apiKey = 'tk_live_' + crypto.randomBytes(24).toString('hex');
+            const { error: insertErr } = await supabase
+                .from('api_keys')
+                .insert([{ user_id: userId, token: apiKey, name: 'Extension Auto-Sync Key' }]);
+                
+            if (insertErr) {
+                return res.status(500).json({ success: false, error: 'Failed to generate API Key' });
+            }
+        }
+
+        return res.json({ success: true, apiKey, userId });
+    } catch (err) {
+        console.error('[AUTH TOKEN EXCHANGE ERROR]', err);
+        return res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 app.get('/api/extension/user-info', async (req, res) => {
     try {
+        let userId = null;
         const apiKey = req.headers['x-api-key'];
-        if (!apiKey) {
-            return res.status(401).json({ success: false, error: 'Unauthorized: Missing x-api-key header' });
+        const authHeader = req.headers.authorization;
+
+        if (apiKey) {
+            const { data: keyData, error: keyErr } = await supabase
+                .from('api_keys')
+                .select('user_id')
+                .eq('token', apiKey)
+                .single();
+
+            if (keyErr || !keyData) {
+                return res.status(401).json({ success: false, error: 'Unauthorized: Invalid API Key' });
+            }
+            userId = keyData.user_id;
+
+            // Background update for last used timestamp
+            supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', apiKey).then();
+        } else if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            const { data: { user }, error } = await supabase.auth.getUser(token);
+            if (error || !user) {
+                return res.status(401).json({ success: false, error: 'Unauthorized: Invalid Bearer token' });
+            }
+            userId = user.id;
+        } else {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Missing authentication' });
         }
-
-        const { data: keyData, error: keyErr } = await supabase
-            .from('api_keys')
-            .select('user_id')
-            .eq('token', apiKey)
-            .single();
-
-        if (keyErr || !keyData) {
-            return res.status(401).json({ success: false, error: 'Unauthorized: Invalid API Key' });
-        }
-
-        const userId = keyData.user_id;
-
-        // Background update for last used timestamp
-        supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', apiKey).then();
 
         const { data: profile, error: profileErr } = await supabase
             .from('profiles')
