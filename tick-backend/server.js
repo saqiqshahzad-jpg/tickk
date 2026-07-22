@@ -1125,6 +1125,63 @@ app.post('/api/domains/verify', requireUserAuth, async (req, res) => {
     }
 });
 
+// ==========================================
+// CHROME EXTENSION API
+// ==========================================
+app.get('/api/extension/user-info', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Missing x-api-key header' });
+        }
+
+        const { data: keyData, error: keyErr } = await supabase
+            .from('api_keys')
+            .select('user_id')
+            .eq('token', apiKey)
+            .single();
+
+        if (keyErr || !keyData) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Invalid API Key' });
+        }
+
+        const userId = keyData.user_id;
+
+        // Background update for last used timestamp
+        supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', apiKey).then();
+
+        const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', userId)
+            .single();
+
+        if (profileErr || !profile) {
+            return res.status(500).json({ success: false, error: 'Failed to retrieve user profile' });
+        }
+
+        const { data: recentEmails, error: trackersErr } = await supabase
+            .from('trackers')
+            .select('recipient, subject, status, open_count, updated_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        if (trackersErr) {
+            return res.status(500).json({ success: false, error: 'Failed to retrieve recent emails' });
+        }
+
+        res.json({
+            success: true,
+            credits: profile.credits || 0,
+            recent_emails: recentEmails || []
+        });
+    } catch (err) {
+        console.error('[EXTENSION API ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
