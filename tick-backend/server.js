@@ -1233,6 +1233,78 @@ app.get('/api/extension/user-info', async (req, res) => {
     }
 });
 
+app.post('/api/track/create', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        if (!apiKey) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Missing x-api-key header' });
+        }
+
+        const { data: keyData, error: keyErr } = await supabase
+            .from('api_keys')
+            .select('user_id')
+            .eq('token', apiKey)
+            .single();
+
+        if (keyErr || !keyData) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Invalid API Key' });
+        }
+
+        const userId = keyData.user_id;
+        const { recipient, subject } = req.body;
+
+        if (!recipient || !subject) {
+            return res.status(400).json({ success: false, error: 'Recipient and Subject are required' });
+        }
+
+        const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', userId)
+            .single();
+
+        if (profileErr || !profile) {
+            return res.status(500).json({ success: false, error: 'Failed to retrieve user profile' });
+        }
+
+        if (profile.credits <= 0) {
+            return res.status(403).json({ success: false, error: 'Insufficient credits' });
+        }
+
+        const { error: deductErr } = await supabase
+            .from('profiles')
+            .update({ credits: profile.credits - 1 })
+            .eq('id', userId);
+
+        if (deductErr) {
+            return res.status(500).json({ success: false, error: 'Transaction failed: Could not deduct credit' });
+        }
+
+        const { data: tracker, error: trackerErr } = await supabase
+            .from('trackers')
+            .insert([{
+                user_id: userId,
+                recipient,
+                subject,
+                status: 'sent',
+                open_count: 0
+            }])
+            .select()
+            .single();
+
+        if (trackerErr || !tracker) {
+            return res.status(500).json({ success: false, error: 'Failed to create tracker' });
+        }
+
+        supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', apiKey).then();
+
+        res.json({ success: true, trackerId: tracker.id });
+    } catch (err) {
+        console.error('[TRACK CREATE ERROR]', err);
+        res.status(500).json({ success: false, error: 'Internal Server Error' });
+    }
+});
+
 // 2. Global Error Handler
 app.use((err, req, res, next) => {
     console.error(`[TICKK-ERROR] ${new Date().toISOString()} | Stack: ${err.stack}`);
