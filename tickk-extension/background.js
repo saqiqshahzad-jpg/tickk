@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
-const ONBOARDING_URL = 'https://tickk.online/extension-welcome';
+const ONBOARDING_URL = 'https://tickk.online/onboarding';
 
 // ─── 1. On Install: Open Onboarding Page ───
 chrome.runtime.onInstalled.addListener((details) => {

@@ -5,7 +5,7 @@
 
 const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
 const TICKK_DASHBOARD_URL = 'https://tickk.online/dashboard';
-const TICKK_LOGIN_URL = 'https://tickk.online/login';
+const TICKK_LOGIN_URL = 'https://tickk.online/onboarding';
 
 // ─── DOM References ───
 const loadingState = document.getElementById('loading-state');
