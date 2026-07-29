@@ -8,7 +8,7 @@
 
   const COMPOSE_BODY_SELECTOR = 'div[aria-label="Message Body"]';
   const SEND_BUTTON_SELECTOR = 'div[aria-label="Send"]';
-  const COMPOSE_TOOLBAR_SELECTOR = '.btC'; // Gmail compose bottom toolbar
+  const COMPOSE_TOOLBAR_SELECTOR = 'div[role="dialog"] .gU.Up, .btC';
   const TO_FIELD_SELECTOR = 'input[aria-label="To recipients"]';
   const SUBJECT_FIELD_SELECTOR = 'input[name="subjectbox"]';
   const PROCESSED_ATTR = 'data-tickk-processed';
@@ -28,6 +28,7 @@
     isInitialized = true;
 
     trackingEnabledGlobal = await isTrackingEnabled();
+    injectHeaderWidget();
     observeComposeWindows();
     console.log('[Tickk Gmail] Content script initialized.');
   }
@@ -77,9 +78,49 @@
     interceptSend(composeContainer, composeBody);
   }
 
+  // ─── Header Injection ───
+  async function injectHeaderWidget() {
+    if (document.querySelector('.tickk-header-widget')) return;
+
+    // Look for Gmail's top right action container
+    const headerContainer = document.querySelector('#gb') || document.querySelector('header');
+    if (!headerContainer) {
+      setTimeout(injectHeaderWidget, 1000);
+      return;
+    }
+
+    const rightActionArea = headerContainer.querySelector('.gb_Se') || headerContainer.querySelector('[role="banner"] > div:last-child') || headerContainer.lastElementChild;
+    if (!rightActionArea) {
+      setTimeout(injectHeaderWidget, 1000);
+      return;
+    }
+
+    const userInfo = await getUserInfo();
+    const credits = userInfo.success ? userInfo.credits : 0;
+
+    const widget = createHeaderWidget(credits, (btn) => {
+      let card = btn.querySelector('.tickk-floating-card');
+      if (!card) {
+        card = createFloatingCard(credits);
+        btn.appendChild(card);
+      }
+      card.classList.toggle('active');
+
+      const closeHandler = (clickEvent) => {
+        if (!card.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
+          card.classList.remove('active');
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    });
+
+    rightActionArea.insertBefore(widget, rightActionArea.firstChild);
+  }
+
   // ─── Inject Tickk Toggle Button in Compose Toolbar ───
   function injectToolbarButton(composeContainer, composeBody) {
-    const toolbar = composeContainer.querySelector(COMPOSE_TOOLBAR_SELECTOR);
+    let toolbar = composeContainer.querySelector(COMPOSE_TOOLBAR_SELECTOR);
     if (!toolbar) {
       console.warn('[Tickk Gmail] Toolbar not found.');
       return;
@@ -88,17 +129,34 @@
     // Don't inject if already present
     if (toolbar.querySelector('[data-tickk-btn]')) return;
 
-    const tickkBtn = createTickkButton((btn) => {
-      const isActive = btn.classList.toggle('tickk-action-btn--inactive');
-      // Store per-compose tracking state on the compose body element
-      composeBody.setAttribute(
-        'data-tickk-tracking',
-        isActive ? 'disabled' : 'enabled'
-      );
-      showTickkToast(
-        isActive ? 'Tracking disabled for this email' : 'Tracking enabled ✓',
-        isActive ? 'info' : 'success'
-      );
+    const trackingState = { opens: trackingEnabledGlobal, clicks: false };
+
+    const tickkBtn = createTickkButton((btn, e) => {
+      let popup = btn.parentElement.querySelector('.tickk-compose-popup');
+      if (!popup) {
+        popup = createComposePopup(trackingState, (newState) => {
+          composeBody.setAttribute('data-tickk-tracking', newState.opens ? 'enabled' : 'disabled');
+          composeBody.setAttribute('data-tickk-clicks', newState.clicks ? 'enabled' : 'disabled');
+          
+          if (newState.opens) {
+            btn.classList.remove('tickk-action-btn--inactive');
+          } else {
+            btn.classList.add('tickk-action-btn--inactive');
+          }
+        });
+        btn.parentElement.style.position = 'relative';
+        btn.parentElement.appendChild(popup);
+      }
+      
+      popup.classList.toggle('active');
+
+      const closeHandler = (clickEvent) => {
+        if (!popup.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
+          popup.classList.remove('active');
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
     });
 
     // Set initial state based on global toggle
@@ -109,11 +167,10 @@
       composeBody.setAttribute('data-tickk-tracking', 'enabled');
     }
 
-    // Insert the button into toolbar area
-    const toolbarRight = toolbar.querySelector('.bAK') || toolbar;
-    toolbarRight.insertBefore(tickkBtn, toolbarRight.firstChild);
+    // Insert the button near the send button
+    toolbar.appendChild(tickkBtn);
 
-    console.log('[Tickk Gmail] Action button injected.');
+    console.log('[Tickk Gmail] Action button + popup injected.');
   }
 
   // ─── Intercept Send Button Click ───

@@ -30,6 +30,7 @@
     isInitialized = true;
 
     trackingEnabledGlobal = await isTrackingEnabled();
+    injectHeaderWidget();
     observeComposeWindows();
     console.log('[Tickk Outlook] Content script initialized.');
   }
@@ -90,6 +91,42 @@
     interceptSend(composeContainer, composeBody);
   }
 
+  // ─── Header Injection ───
+  async function injectHeaderWidget() {
+    if (document.querySelector('.tickk-header-widget')) return;
+
+    // Look for Outlook's top right action container near Settings
+    const settingsBtn = document.querySelector('#O365_MainLink_Settings');
+    const headerContainer = settingsBtn ? settingsBtn.parentElement : (document.querySelector('#O365_NavHeader') || document.querySelector('header'));
+    
+    if (!headerContainer) {
+      setTimeout(injectHeaderWidget, 1000);
+      return;
+    }
+
+    const userInfo = await getUserInfo();
+    const credits = userInfo.success ? userInfo.credits : 0;
+
+    const widget = createHeaderWidget(credits, (btn) => {
+      let card = btn.querySelector('.tickk-floating-card');
+      if (!card) {
+        card = createFloatingCard(credits);
+        btn.appendChild(card);
+      }
+      card.classList.toggle('active');
+
+      const closeHandler = (clickEvent) => {
+        if (!card.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
+          card.classList.remove('active');
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    });
+
+    headerContainer.insertBefore(widget, headerContainer.firstChild);
+  }
+
   // ─── Inject Tickk Toggle Button in Outlook Toolbar ───
   function injectToolbarButton(composeContainer, composeBody) {
     // Outlook has various toolbar structures — try multiple selectors
@@ -116,16 +153,34 @@
     // Don't inject if already present
     if (toolbar.querySelector('[data-tickk-btn]')) return;
 
-    const tickkBtn = createTickkButton((btn) => {
-      const isActive = btn.classList.toggle('tickk-action-btn--inactive');
-      composeBody.setAttribute(
-        'data-tickk-tracking',
-        isActive ? 'disabled' : 'enabled'
-      );
-      showTickkToast(
-        isActive ? 'Tracking disabled for this email' : 'Tracking enabled ✓',
-        isActive ? 'info' : 'success'
-      );
+    const trackingState = { opens: trackingEnabledGlobal, clicks: false };
+
+    const tickkBtn = createTickkButton((btn, e) => {
+      let popup = btn.parentElement.querySelector('.tickk-compose-popup');
+      if (!popup) {
+        popup = createComposePopup(trackingState, (newState) => {
+          composeBody.setAttribute('data-tickk-tracking', newState.opens ? 'enabled' : 'disabled');
+          composeBody.setAttribute('data-tickk-clicks', newState.clicks ? 'enabled' : 'disabled');
+          
+          if (newState.opens) {
+            btn.classList.remove('tickk-action-btn--inactive');
+          } else {
+            btn.classList.add('tickk-action-btn--inactive');
+          }
+        });
+        btn.parentElement.style.position = 'relative';
+        btn.parentElement.appendChild(popup);
+      }
+      
+      popup.classList.toggle('active');
+
+      const closeHandler = (clickEvent) => {
+        if (!popup.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
+          popup.classList.remove('active');
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
     });
 
     // Match Outlook's button styling
@@ -140,7 +195,7 @@
     }
 
     toolbar.appendChild(tickkBtn);
-    console.log('[Tickk Outlook] Action button injected.');
+    console.log('[Tickk Outlook] Action button + popup injected.');
   }
 
   // ─── Intercept Send Button Click ───

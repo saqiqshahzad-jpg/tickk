@@ -170,3 +170,108 @@ function showTickkToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+/**
+ * Create the Top-Right Header Widget (Pill)
+ * @param {number} credits - User's current credits
+ * @param {Function} onClick - Click handler to open floating card
+ * @returns {HTMLDivElement}
+ */
+function createHeaderWidget(credits, onClick) {
+  const widget = document.createElement('div');
+  widget.className = 'tickk-header-widget';
+  widget.innerHTML = `
+    <div class="tickk-status-dot"></div>
+    <span>Tickk Active</span>
+    <span style="color: #4b5563;">|</span>
+    <span class="tickk-credits-text">${credits} Credits</span>
+  `;
+  widget.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) onClick(widget, e);
+  });
+  return widget;
+}
+
+/**
+ * Create the Floating Dashboard Card attached to the Header Widget
+ * @param {number} credits - User's current credits
+ * @returns {HTMLDivElement}
+ */
+function createFloatingCard(credits) {
+  const card = document.createElement('div');
+  card.className = 'tickk-floating-card';
+  card.innerHTML = `
+    <div class="tickk-card-header">
+      <div class="tickk-card-title">
+        <span class="tickk-card-logo">✓</span> Tickk
+      </div>
+    </div>
+    <div class="tickk-card-stat">
+      <span>Available Credits</span>
+      <span class="tickk-stat-value">${credits}</span>
+    </div>
+    <div class="tickk-card-stat" style="background: transparent; padding: 4px 12px; margin-top: 12px; font-size: 12px; color: #9ca3af;">
+      Email tracking is active. Track opens and clicks directly from your compose window.
+    </div>
+    <div class="tickk-card-footer">
+      <button class="tickk-btn" id="tickk-open-dashboard-btn">Open Dashboard</button>
+    </div>
+  `;
+  
+  // Prevent clicks inside card from propagating and closing it
+  card.addEventListener('click', (e) => e.stopPropagation());
+
+  card.querySelector('#tickk-open-dashboard-btn').addEventListener('click', () => {
+    window.open('https://tickk.online/dashboard', '_blank');
+  });
+
+  return card;
+}
+
+/**
+ * Create the Compose Pop-up Menu for toggling tracking settings
+ * @param {Object} state - Initial state { opens: boolean, clicks: boolean }
+ * @param {Function} onChange - Callback when state changes
+ * @returns {HTMLDivElement}
+ */
+function createComposePopup(state, onChange) {
+  const popup = document.createElement('div');
+  popup.className = 'tickk-compose-popup';
+  
+  popup.innerHTML = `
+    <div class="tickk-popup-item">
+      <span>Track Opens</span>
+      <label class="tickk-toggle">
+        <input type="checkbox" id="tickk-toggle-opens" ${state.opens ? 'checked' : ''}>
+        <span class="tickk-toggle-slider"></span>
+      </label>
+    </div>
+    <div class="tickk-popup-item">
+      <span>Track Clicks</span>
+      <label class="tickk-toggle">
+        <input type="checkbox" id="tickk-toggle-clicks" ${state.clicks ? 'checked' : ''}>
+        <span class="tickk-toggle-slider"></span>
+      </label>
+    </div>
+  `;
+
+  // Prevent closing when interacting with popup
+  popup.addEventListener('click', (e) => e.stopPropagation());
+
+  const opensToggle = popup.querySelector('#tickk-toggle-opens');
+  const clicksToggle = popup.querySelector('#tickk-toggle-clicks');
+
+  opensToggle.addEventListener('change', () => {
+    state.opens = opensToggle.checked;
+    onChange(state);
+  });
+
+  clicksToggle.addEventListener('change', () => {
+    state.clicks = clicksToggle.checked;
+    onChange(state);
+  });
+
+  return popup;
+}

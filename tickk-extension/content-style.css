@@ -87,3 +87,213 @@
 .tickk-toast--info {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
+
+/* ─── Top-Right Header Widget ─── */
+.tickk-header-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 9999px; /* Pill shape */
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  z-index: 10000;
+  position: relative;
+  margin: 0 8px;
+}
+
+.tickk-header-widget:hover {
+  background: #273445;
+  border-color: #4b5563;
+}
+
+.tickk-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.tickk-credits-text {
+  color: #9ca3af;
+  margin-left: 4px;
+}
+
+/* ─── Floating Dashboard Card ─── */
+.tickk-floating-card {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 280px;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  color: #e5e7eb;
+  padding: 16px;
+  z-index: 10001;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: none;
+  cursor: default;
+}
+
+.tickk-floating-card.active {
+  display: block;
+  animation: tickk-fade-in 0.2s ease;
+}
+
+@keyframes tickk-fade-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tickk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #374151;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.tickk-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tickk-card-logo {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.tickk-card-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #1f2937;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.tickk-stat-value {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.tickk-card-footer {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.tickk-btn {
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+
+.tickk-btn:hover {
+  background: #059669;
+}
+
+/* ─── Compose Pop-up Menu ─── */
+.tickk-compose-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  width: 220px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  padding: 8px 0;
+  z-index: 10001;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #e5e7eb;
+  display: none;
+}
+
+.tickk-compose-popup.active {
+  display: block;
+}
+
+.tickk-popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tickk-popup-item:hover {
+  background: #374151;
+}
+
+/* Toggle Switch (Small) */
+.tickk-toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+}
+
+.tickk-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tickk-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #4b5563;
+  transition: .2s;
+  border-radius: 18px;
+}
+
+.tickk-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+
+.tickk-toggle input:checked + .tickk-toggle-slider {
+  background-color: #10b981;
+}
+
+.tickk-toggle input:checked + .tickk-toggle-slider:before {
+  transform: translateX(14px);
+}
