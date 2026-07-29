@@ -16,6 +16,7 @@
   const PROCESSED_ATTR = 'data-tickk-processed';
 
   let trackingEnabledGlobal = true;
+  let isInitialized = false;
 
   // ─── Initialize ───
   async function init() {
@@ -24,6 +25,9 @@
       console.log('[Tickk Outlook] Not authenticated — skipping injection.');
       return;
     }
+
+    if (isInitialized) return;
+    isInitialized = true;
 
     trackingEnabledGlobal = await isTrackingEnabled();
     observeComposeWindows();
@@ -254,6 +258,14 @@
     }
     return '(No Subject)';
   }
+
+  // ─── Storage Listener for Auth Sync ───
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && changes.tickk_api_key && changes.tickk_api_key.newValue) {
+      console.log('[Tickk Outlook] Auth synced from storage! Initializing...');
+      init();
+    }
+  });
 
   // ─── Boot ───
   if (document.readyState === 'loading') {
