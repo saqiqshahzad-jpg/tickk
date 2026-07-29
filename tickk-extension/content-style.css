@@ -1,0 +1,89 @@
+/* ═══════════════════════════════════════════════════════════════
+   Tickk Extension — Content Script Styles
+   Shared styles injected into Gmail & Outlook pages
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Tickk Action Button ─── */
+.tickk-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #10b981;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 4px;
+  padding: 0;
+  position: relative;
+  z-index: 1000;
+}
+
+.tickk-action-btn:hover {
+  background: #059669;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.tickk-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* Inactive state (tracking off) */
+.tickk-action-btn--inactive {
+  background: #6b7280;
+  opacity: 0.6;
+}
+
+.tickk-action-btn--inactive:hover {
+  background: #4b5563;
+  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.4);
+}
+
+/* Outlook-specific adjustments */
+.tickk-outlook-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+/* ─── Toast Notification ─── */
+.tickk-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 999999;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  max-width: 320px;
+}
+
+.tickk-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tickk-toast--success {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.tickk-toast--error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.tickk-toast--info {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
