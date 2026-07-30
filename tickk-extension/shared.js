@@ -11,10 +11,12 @@ const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
  */
 async function getStoredAuth() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['tickk_api_key', 'tickk_user_id'], (result) => {
+    chrome.storage.local.get(['tickk_api_key', 'tickk_user_id', 'tickk_user_email', 'tickk_opens_count'], (result) => {
       resolve({
         apiKey: result.tickk_api_key || null,
         userId: result.tickk_user_id || null,
+        email: result.tickk_user_email || 'Not Connected',
+        opensCount: result.tickk_opens_count || 0
       });
     });
   });
@@ -132,8 +134,8 @@ function createTickkButton(onClick) {
   btn.title = 'Tickk — Email Tracking Active';
   btn.setAttribute('data-tickk-btn', 'true');
   btn.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill="currentColor"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
     </svg>
   `;
   btn.addEventListener('click', (e) => {
@@ -173,19 +175,25 @@ function showTickkToast(message, type = 'info') {
 
 /**
  * Create the Top-Right Header Widget (Pill)
- * @param {number} credits - User's current credits
+ * @param {boolean} authed - Is the user authenticated
  * @param {Function} onClick - Click handler to open floating card
  * @returns {HTMLDivElement}
  */
-function createHeaderWidget(credits, onClick) {
+function createHeaderWidget(authed, onClick) {
   const widget = document.createElement('div');
   widget.className = 'tickk-header-widget';
-  widget.innerHTML = `
-    <div class="tickk-status-dot"></div>
-    <span>Tickk Active</span>
-    <span style="color: #4b5563;">|</span>
-    <span class="tickk-credits-text">${credits} Credits</span>
-  `;
+  if (authed) {
+    widget.innerHTML = `
+      <div class="tickk-status-dot"></div>
+      <span>Tickk Active</span>
+    `;
+  } else {
+    widget.innerHTML = `
+      <div class="tickk-status-dot" style="background-color: #ef4444; box-shadow: 0 0 6px #ef4444;"></div>
+      <span>Connect Account</span>
+    `;
+  }
+  
   widget.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -196,27 +204,35 @@ function createHeaderWidget(credits, onClick) {
 
 /**
  * Create the Floating Dashboard Card attached to the Header Widget
+ * @param {string} email - Connected user email
  * @param {number} credits - User's current credits
+ * @param {number} opensCount - User's quick opens count
  * @returns {HTMLDivElement}
  */
-function createFloatingCard(credits) {
+function createFloatingCard(email, credits, opensCount) {
   const card = document.createElement('div');
   card.className = 'tickk-floating-card';
   card.innerHTML = `
     <div class="tickk-card-header">
       <div class="tickk-card-title">
-        <span class="tickk-card-logo">✓</span> Tickk
+        <span class="tickk-card-logo">✓✓</span> 
+        <span style="font-size: 13px; font-weight: 500; color: #9ca3af; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;" title="${email}">${email}</span>
       </div>
     </div>
+    <div class="tickk-card-stat" style="background: transparent; border: 1px solid #374151; justify-content: center; margin-bottom: 12px;">
+      <div class="tickk-status-dot" style="margin-right: 8px;"></div>
+      <span style="font-weight: 500; color: #10b981;">Tracking Active</span>
+    </div>
     <div class="tickk-card-stat">
-      <span>Available Credits</span>
+      <span>Quick Opens</span>
+      <span class="tickk-stat-value" style="color: #60a5fa;">${opensCount}</span>
+    </div>
+    <div class="tickk-card-stat">
+      <span>Credits</span>
       <span class="tickk-stat-value">${credits}</span>
     </div>
-    <div class="tickk-card-stat" style="background: transparent; padding: 4px 12px; margin-top: 12px; font-size: 12px; color: #9ca3af;">
-      Email tracking is active. Track opens and clicks directly from your compose window.
-    </div>
     <div class="tickk-card-footer">
-      <button class="tickk-btn" id="tickk-open-dashboard-btn">Open Dashboard</button>
+      <button class="tickk-btn" id="tickk-open-dashboard-btn">Open Full Dashboard ↗</button>
     </div>
   `;
   

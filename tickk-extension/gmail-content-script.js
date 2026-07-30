@@ -18,19 +18,21 @@
 
   // ─── Initialize ───
   async function init() {
-    const authed = await isAuthenticated();
-    if (!authed) {
-      console.log('[Tickk Gmail] Not authenticated — skipping injection.');
-      return;
-    }
-
     if (isInitialized) return;
     isInitialized = true;
 
-    trackingEnabledGlobal = await isTrackingEnabled();
-    injectHeaderWidget();
-    observeComposeWindows();
-    console.log('[Tickk Gmail] Content script initialized.');
+    const authed = await isAuthenticated();
+    
+    // Inject header widget regardless of auth state
+    injectHeaderWidget(authed);
+    
+    if (authed) {
+      trackingEnabledGlobal = await isTrackingEnabled();
+      observeComposeWindows();
+      console.log('[Tickk Gmail] Content script initialized.');
+    } else {
+      console.log('[Tickk Gmail] Not authenticated — injected Connect button only.');
+    }
   }
 
   // ─── MutationObserver: Watch for Compose Windows ───
@@ -79,29 +81,39 @@
   }
 
   // ─── Header Injection ───
-  async function injectHeaderWidget() {
+  async function injectHeaderWidget(authed) {
     if (document.querySelector('.tickk-header-widget')) return;
 
     // Look for Gmail's top right action container
     const headerContainer = document.querySelector('#gb') || document.querySelector('header');
     if (!headerContainer) {
-      setTimeout(injectHeaderWidget, 1000);
+      setTimeout(() => injectHeaderWidget(authed), 1000);
       return;
     }
 
-    const rightActionArea = headerContainer.querySelector('.gb_Se') || headerContainer.querySelector('[role="banner"] > div:last-child') || headerContainer.lastElementChild;
+    const rightActionArea = headerContainer.querySelector('.gb_3e') || headerContainer.querySelector('.gb_Se') || headerContainer.querySelector('[role="banner"] > div:last-child') || headerContainer.lastElementChild;
     if (!rightActionArea) {
-      setTimeout(injectHeaderWidget, 1000);
+      setTimeout(() => injectHeaderWidget(authed), 1000);
       return;
     }
 
-    const userInfo = await getUserInfo();
-    const credits = userInfo.success ? userInfo.credits : 0;
+    let credits = 0;
+    let authData = { email: 'Not Connected', opensCount: 0 };
+    if (authed) {
+      const userInfo = await getUserInfo();
+      credits = userInfo.success ? userInfo.credits : 0;
+      authData = await getStoredAuth();
+    }
 
-    const widget = createHeaderWidget(credits, (btn) => {
+    const widget = createHeaderWidget(authed, (btn) => {
+      if (!authed) {
+        window.open('https://tickk.online/onboarding', '_blank');
+        return;
+      }
+
       let card = btn.querySelector('.tickk-floating-card');
       if (!card) {
-        card = createFloatingCard(credits);
+        card = createFloatingCard(authData.email, credits, authData.opensCount);
         btn.appendChild(card);
       }
       card.classList.toggle('active');

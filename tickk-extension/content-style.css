@@ -93,13 +93,13 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  padding: 4px 12px;
+  background: rgba(24, 24, 27, 0.9);
+  border: 1px solid #27272a;
   border-radius: 9999px; /* Pill shape */
-  color: #fff;
+  color: #e4e4e7;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -107,11 +107,13 @@
   z-index: 10000;
   position: relative;
   margin: 0 8px;
+  box-sizing: border-box;
+  backdrop-filter: blur(4px);
 }
 
 .tickk-header-widget:hover {
-  background: #273445;
-  border-color: #4b5563;
+  background: rgba(24, 24, 27, 1);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .tickk-status-dot {
@@ -123,7 +125,7 @@
 }
 
 .tickk-credits-text {
-  color: #9ca3af;
+  color: #e4e4e7;
   margin-left: 4px;
 }
 
@@ -224,15 +226,16 @@
   left: 0;
   margin-bottom: 8px;
   width: 220px;
-  background: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  padding: 8px 0;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  padding: 12px;
   z-index: 10001;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #e5e7eb;
+  color: #e4e4e7;
   display: none;
+  box-sizing: border-box;
 }
 
 .tickk-compose-popup.active {
@@ -243,13 +246,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
+  padding: 8px;
+  border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
+  color: #e4e4e7;
+  transition: background 0.2s ease;
 }
 
 .tickk-popup-item:hover {
-  background: #374151;
+  background: #27272a;
 }
 
 /* Toggle Switch (Small) */
