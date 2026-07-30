@@ -97,7 +97,7 @@
   background: rgba(24, 24, 27, 0.9);
   border: 1px solid #27272a;
   border-radius: 9999px; /* Pill shape */
-  color: #e4e4e7;
+  color: #34d399;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -302,4 +302,66 @@
 
 .tickk-toggle input:checked + .tickk-toggle-slider:before {
   transform: translateX(14px);
+}
+
+/* ─── Stealth Reassurance Hint ─── */
+.tickk-stealth-hint {
+  font-size: 11px;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+}
+
+/* ─── Inline Compose Toolbar Elements ─── */
+.tickk-toolbar-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.tickk-toolbar-toggle-label {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ─── Stealth Hint Badge ─── */
+.tickk-stealth-hint-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 6px 10px;
+  background: rgba(24, 24, 27, 0.6);
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 11px;
+  color: #a1a1aa;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  box-sizing: border-box;
+}
+
+.tickk-stealth-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #34d399;
+  box-shadow: 0 0 8px 1px rgba(52, 211, 153, 0.4);
 }

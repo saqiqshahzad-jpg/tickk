@@ -143,27 +143,38 @@
 
     const trackingState = { opens: trackingEnabledGlobal, clicks: false };
 
-    const tickkBtn = createTickkButton((btn, e) => {
-      let popup = btn.parentElement.querySelector('.tickk-compose-popup');
+    const { container, btn } = createToolbarContainer(trackingState, (newState) => {
+      composeBody.setAttribute('data-tickk-tracking', newState.opens ? 'enabled' : 'disabled');
+      composeBody.setAttribute('data-tickk-clicks', newState.clicks ? 'enabled' : 'disabled');
+      if (newState.opens) {
+        btn.classList.remove('tickk-action-btn--inactive');
+      } else {
+        btn.classList.add('tickk-action-btn--inactive');
+      }
+    }, (btnElement) => {
+      let popup = container.querySelector('.tickk-compose-popup');
       if (!popup) {
         popup = createComposePopup(trackingState, (newState) => {
           composeBody.setAttribute('data-tickk-tracking', newState.opens ? 'enabled' : 'disabled');
           composeBody.setAttribute('data-tickk-clicks', newState.clicks ? 'enabled' : 'disabled');
           
           if (newState.opens) {
-            btn.classList.remove('tickk-action-btn--inactive');
+            btnElement.classList.remove('tickk-action-btn--inactive');
           } else {
-            btn.classList.add('tickk-action-btn--inactive');
+            btnElement.classList.add('tickk-action-btn--inactive');
           }
+          
+          const inlineToggle = container.querySelector('#tickk-inline-toggle');
+          if (inlineToggle) inlineToggle.checked = newState.opens;
         });
-        btn.parentElement.style.position = 'relative';
-        btn.parentElement.appendChild(popup);
+        container.style.position = 'relative';
+        container.appendChild(popup);
       }
       
       popup.classList.toggle('active');
 
       const closeHandler = (clickEvent) => {
-        if (!popup.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
+        if (!popup.contains(clickEvent.target) && !btnElement.contains(clickEvent.target)) {
           popup.classList.remove('active');
           document.removeEventListener('click', closeHandler);
         }
@@ -173,16 +184,31 @@
 
     // Set initial state based on global toggle
     if (!trackingEnabledGlobal) {
-      tickkBtn.classList.add('tickk-action-btn--inactive');
       composeBody.setAttribute('data-tickk-tracking', 'disabled');
     } else {
       composeBody.setAttribute('data-tickk-tracking', 'enabled');
     }
 
-    // Insert the button near the send button
-    toolbar.appendChild(tickkBtn);
+    // Insert the container near the send button
+    toolbar.appendChild(container);
+    
+    injectStealthHint(composeContainer);
 
     console.log('[Tickk Gmail] Action button + popup injected.');
+  }
+
+  // ─── Inject Stealth Reassurance Hint ───
+  function injectStealthHint(composeContainer) {
+    if (composeContainer.querySelector('.tickk-stealth-hint')) return;
+
+    const hint = document.createElement('div');
+    hint.className = 'tickk-stealth-hint';
+    hint.innerHTML = '🤫 Silent Proxy Active — Relax bro, recipient won\\'t see a thing.';
+
+    const toolbar = composeContainer.querySelector(COMPOSE_TOOLBAR_SELECTOR);
+    if (toolbar && toolbar.parentElement) {
+      toolbar.parentElement.insertBefore(hint, toolbar.parentElement.firstChild);
+    }
   }
 
   // ─── Intercept Send Button Click ───

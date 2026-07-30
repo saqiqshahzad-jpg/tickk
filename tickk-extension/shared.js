@@ -184,8 +184,10 @@ function createHeaderWidget(authed, onClick) {
   widget.className = 'tickk-header-widget';
   if (authed) {
     widget.innerHTML = `
-      <div class="tickk-status-dot"></div>
-      <span>Tickk Active</span>
+      <span class="tickk-card-logo" style="margin-right: 4px;">✓✓</span>
+      <span style="color: #4b5563; margin-right: 4px;">|</span>
+      <div class="tickk-status-dot" style="margin-right: 4px;"></div>
+      <span>Active</span>
     `;
   } else {
     widget.innerHTML = `
@@ -271,6 +273,10 @@ function createComposePopup(state, onChange) {
         <span class="tickk-toggle-slider"></span>
       </label>
     </div>
+    <div class="tickk-stealth-hint-badge" title="Recipients will not see anything.">
+      <div class="tickk-stealth-dot"></div>
+      <span>100% Invisible / Silent</span>
+    </div>
   `;
 
   // Prevent closing when interacting with popup
@@ -290,4 +296,52 @@ function createComposePopup(state, onChange) {
   });
 
   return popup;
+}
+
+/**
+ * Create the inline toolbar container for Compose (Toggle + Button)
+ * @param {Object} state - tracking state
+ * @param {Function} onToggle - callback on toggle change
+ * @param {Function} onBtnClick - callback on button click
+ */
+function createToolbarContainer(state, onToggle, onBtnClick) {
+  const container = document.createElement('div');
+  container.className = 'tickk-toolbar-container';
+  container.setAttribute('data-tickk-btn', 'true');
+
+  const toggleLabel = document.createElement('label');
+  toggleLabel.className = 'tickk-toolbar-toggle-label';
+  toggleLabel.innerHTML = `
+    <span>Track Mail</span>
+    <div class="tickk-toggle">
+      <input type="checkbox" id="tickk-inline-toggle" ${state.opens ? 'checked' : ''}>
+      <span class="tickk-toggle-slider"></span>
+    </div>
+  `;
+  
+  const toggleInput = toggleLabel.querySelector('input');
+  toggleInput.addEventListener('change', (e) => {
+    state.opens = e.target.checked;
+    onToggle(state);
+  });
+
+  const btn = document.createElement('button');
+  btn.className = 'tickk-action-btn' + (!state.opens ? ' tickk-action-btn--inactive' : '');
+  btn.title = 'Tickk Options';
+  btn.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
+    </svg>
+  `;
+  
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onBtnClick) onBtnClick(btn, e);
+  });
+  
+  container.appendChild(toggleLabel);
+  container.appendChild(btn);
+
+  return { container, btn, toggleInput };
 }
