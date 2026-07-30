@@ -1,3 +1,4 @@
+console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 // ═══════════════════════════════════════════════════════════════
 // Tickk Extension — Gmail Content Script
 // Injects tracking pixel + action icon into Gmail compose window
