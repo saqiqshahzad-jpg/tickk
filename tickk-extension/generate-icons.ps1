@@ -16,7 +16,7 @@ function New-TickkIcon {
     $sf.LineAlignment = 'Center'
     $rect = New-Object System.Drawing.RectangleF(0, 0, $Size, $Size)
     
-    $g.DrawString([string][char]0x2713, $font, $brush, $rect, $sf)
+    $g.DrawString('t', $font, $brush, $rect, $sf)
     
     $bmp.Save($OutputPath, [System.Drawing.Imaging.ImageFormat]::Png)
     $g.Dispose()
