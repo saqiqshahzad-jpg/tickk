@@ -19,20 +19,24 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
   // ─── Initialize ───
   async function init() {
-    if (isInitialized) return;
-    isInitialized = true;
+    try {
+      if (isInitialized) return;
+      isInitialized = true;
 
-    const authed = await isAuthenticated();
-    
-    // Inject header widget regardless of auth state
-    injectHeaderWidget(authed);
-    
-    if (authed) {
-      trackingEnabledGlobal = await isTrackingEnabled();
-      observeComposeWindows();
-      console.log('[Tickk Gmail] Content script initialized.');
-    } else {
-      console.log('[Tickk Gmail] Not authenticated — injected Connect button only.');
+      const authed = await isAuthenticated();
+      
+      // Inject header widget regardless of auth state
+      injectHeaderWidget(authed);
+      
+      if (authed) {
+        trackingEnabledGlobal = await isTrackingEnabled();
+        observeComposeWindows();
+        console.log('[Tickk Gmail] Content script initialized.');
+      } else {
+        console.log('[Tickk Gmail] Not authenticated — injected Connect button only.');
+      }
+    } catch (e) {
+      console.error('TICKK ERROR:', e);
     }
   }
 
