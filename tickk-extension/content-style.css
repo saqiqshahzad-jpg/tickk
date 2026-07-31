@@ -522,3 +522,52 @@
 .tickk-popup-item:hover {
   background: rgba(255, 255, 255, 0.05);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   §8 — Top Header Icon & Mini-Dashboard
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Top Header Icon Button */
+#tickk-header-trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  margin: 0 4px !important;
+  transition: background 0.2s ease !important;
+}
+
+#tickk-header-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Floating Mini-Dashboard Card */
+#tickk-mini-modal {
+  position: fixed !important;
+  top: 56px !important;
+  right: 80px !important;
+  width: 240px !important;
+  background-color: #09090b !important;
+  border: 1px solid #27272a !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  z-index: 999999 !important;
+  color: #e4e4e7 !important;
+  font-family: sans-serif !important;
+}
+
+#tickk-dash-btn {
+  width: 100% !important;
+  margin-top: 10px !important;
+  background-color: #10b981 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 0 !important;
+  cursor: pointer !important;
+}

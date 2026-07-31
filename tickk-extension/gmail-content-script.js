@@ -26,7 +26,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       const authed = await isAuthenticated();
       
       // Inject header widget regardless of auth state
-      injectHeaderBadge();
+      injectHeaderIcon();
       
       // ALWAYS observe compose windows (so the UI draws even if not authenticated)
       trackingEnabledGlobal = await isTrackingEnabled();
@@ -36,9 +36,16 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       // Listen for background token syncs to update header dynamically without reloading
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local' && changes.tickk_api_key) {
-          const oldHeader = document.querySelector('#tickk-header-badge');
-          if (oldHeader) oldHeader.remove();
-          injectHeaderBadge();
+          const oldTrigger = document.querySelector('#tickk-header-trigger');
+          if (oldTrigger) oldTrigger.remove();
+          injectHeaderIcon();
+          
+          // Re-render modal if open
+          const modal = document.querySelector('#tickk-mini-modal');
+          if (modal && modal.style.display !== 'none') {
+             modal.remove();
+             toggleMiniDashboard();
+          }
         }
       });
     } catch (e) {
@@ -103,39 +110,96 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   }
 
   // ─── Header Injection ───
-  function injectHeaderBadge() {
-    // Gmail Top-Right Action Area (Settings/Profile icon container)
-    const headerContainer = document.querySelector('#gb div[aria-label="Settings"]')?.parentElement || document.querySelector('#gb');
+  function injectHeaderIcon() {
+    const settingsBtn = document.querySelector('div[aria-label="Settings"]')?.parentElement;
     
-    if (headerContainer && !document.querySelector('#tickk-header-badge')) {
-      const badge = document.createElement('div');
-      badge.id = 'tickk-header-badge';
+    if (settingsBtn && !document.querySelector('#tickk-header-trigger')) {
+      const trigger = document.createElement('div');
+      trigger.id = 'tickk-header-trigger';
+      trigger.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; margin-right: 4px;';
+      trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 20px; height: 20px;" />`;
       
-      // Inline styling to make it look like a clean pill
-      badge.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #09090b; border: 1px solid #27272a; border-radius: 9999px; cursor: pointer; margin-right: 12px; margin-top: auto; margin-bottom: auto;';
+      // Hover effect
+      trigger.onmouseenter = () => trigger.style.backgroundColor = 'rgba(255,255,255,0.1)';
+      trigger.onmouseleave = () => trigger.style.backgroundColor = 'transparent';
+
+      // Insert right next to Settings gear icon
+      settingsBtn.parentNode.insertBefore(trigger, settingsBtn);
       
-      badge.innerHTML = `
-        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px rgba(16,185,129,0.5);"></span>
-        <span style="color: #e4e4e7; font-size: 12px; font-weight: 600;">Tickk</span>
-      `;
-      
-      // Click Handler to Open Dashboard / Onboarding
-      badge.onclick = () => {
-        chrome.storage.local.get(['tickk_api_key'], (res) => {
-          if (res.tickk_api_key) {
-            window.open('https://tickk.online/dashboard', '_blank');
-          } else {
-            window.open('https://tickk.online/onboarding', '_blank');
-          }
-        });
+      // Click Event: Toggle Mini-Dashboard Dropdown
+      trigger.onclick = (e) => {
+        e.stopPropagation();
+        toggleMiniDashboard(trigger);
       };
-      
-      headerContainer.prepend(badge);
     }
   }
 
+  function toggleMiniDashboard(trigger) {
+    let modal = document.querySelector('#tickk-mini-modal');
+    if (modal) {
+      modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    
+    // Build Modal Container
+    modal = document.createElement('div');
+    modal.id = 'tickk-mini-modal';
+    
+    // Position it below the trigger icon
+    const rect = trigger.getBoundingClientRect();
+    modal.style.cssText = `
+      position: fixed;
+      top: ${rect.bottom + 8}px;
+      right: ${window.innerWidth - rect.right - 20}px;
+      width: 280px;
+      background: #09090b;
+      border: 1px solid #27272a;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.3);
+      z-index: 999999;
+      padding: 16px;
+      font-family: Inter, Arial, sans-serif;
+      color: #e4e4e7;
+    `;
+    
+    chrome.storage.local.get(['tickk_api_key', 'tickk_user_email'], (res) => {
+      const email = res.tickk_user_email || 'Logged Out';
+      const isLoggedIn = !!res.tickk_api_key;
+      
+      modal.innerHTML = `
+        <div style="display: flex; align-items: center; margin-bottom: 16px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px;"></span>
+          <span style="font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${email}</span>
+        </div>
+        <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px;">
+          <p style="margin: 0;">${isLoggedIn ? '🟢 Tracking Active' : '🔴 Connection Required'}</p>
+        </div>
+        <button id="tickk-dash-btn" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; font-weight: 600; font-size: 13px; cursor: pointer;">
+          ${isLoggedIn ? 'Open Full Dashboard ↗' : 'Connect Account ⚡'}
+        </button>
+      `;
+      
+      document.body.appendChild(modal);
+      
+      document.getElementById('tickk-dash-btn').onclick = () => {
+        const targetUrl = isLoggedIn ? 'https://tickk.online/dashboard' : 'https://tickk.online/onboarding';
+        window.open(targetUrl, '_blank');
+        modal.style.display = 'none';
+      };
+
+      // Close modal when clicking outside
+      const closeHandler = (e) => {
+        if (!modal.contains(e.target) && !trigger.contains(e.target)) {
+          modal.style.display = 'none';
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    });
+  }
+
   // Run on interval / observer to ensure Gmail SPA doesn't wipe it
-  setInterval(injectHeaderBadge, 2000);
+  setInterval(injectHeaderIcon, 1500);
 
   // ─── Inject Tickk Toggle Button in Compose Toolbar ───
   function injectToolbarButton(composeContainer, composeBody) {
