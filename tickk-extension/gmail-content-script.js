@@ -208,7 +208,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
     const hint = document.createElement('div');
     hint.className = 'tickk-stealth-hint';
-    hint.innerHTML = "🤫 Silent Proxy Active — Recipient won't see a thing.";
+    hint.textContent = "🤫 Silent Proxy Active — Recipient won't see a thing.";
 
     const toolbar = composeContainer.querySelector(COMPOSE_TOOLBAR_SELECTOR);
     if (toolbar && toolbar.parentElement) {

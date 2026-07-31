@@ -16,6 +16,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // ─── 2. External Message Handler (Token Handoff from tickk.online) ───
 // Web app sends: chrome.runtime.sendMessage(EXTENSION_ID, { type: 'AUTH_TOKEN', accessToken: '...' })
+// Legacy support: also accepts { type: 'TICKK_AUTH_SUCCESS', apiKey: '...' }
 chrome.runtime.onMessageExternal.addListener(
   async (message, sender, sendResponse) => {
     // Validate sender origin
@@ -24,25 +25,50 @@ chrome.runtime.onMessageExternal.addListener(
       return;
     }
 
-    if (message.type === 'AUTH_TOKEN' && message.accessToken) {
+    // Accept both message types for compatibility
+    const isAuthToken = message.type === 'AUTH_TOKEN' && message.accessToken;
+    const isLegacyAuth = message.type === 'TICKK_AUTH_SUCCESS' && (message.accessToken || message.apiKey);
+
+    if (isAuthToken || isLegacyAuth) {
       try {
-        const result = await exchangeToken(message.accessToken);
-        if (result.success) {
-          // Save API key + user ID to storage
-          await chrome.storage.local.set({
-            tickk_api_key: result.apiKey,
-            tickk_user_id: result.userId,
+        let apiKey, userId;
+
+        if (message.accessToken) {
+          // Primary flow: exchange Supabase JWT for persistent API key
+          const result = await exchangeToken(message.accessToken);
+          if (!result.success) {
+            sendResponse({ success: false, error: result.error });
+            return;
+          }
+          apiKey = result.apiKey;
+          userId = result.userId;
+        } else if (message.apiKey) {
+          // Legacy fallback: apiKey sent directly
+          apiKey = message.apiKey;
+          userId = message.userId || null;
+        }
+
+        if (apiKey) {
+          // Save API key + user ID + email to storage
+          const storageData = {
+            tickk_api_key: apiKey,
             tickk_auth_timestamp: Date.now(),
-          });
+          };
+          if (userId) storageData.tickk_user_id = userId;
+          if (message.email) storageData.tickk_user_email = message.email;
+
+          await chrome.storage.local.set(storageData);
           console.log('[Tickk BG] Auth synced successfully.');
           sendResponse({ success: true });
         } else {
-          sendResponse({ success: false, error: result.error });
+          sendResponse({ success: false, error: 'No credentials received' });
         }
       } catch (err) {
         console.error('[Tickk BG] Token exchange failed:', err);
         sendResponse({ success: false, error: err.message });
       }
+    } else {
+      sendResponse({ success: false, error: 'Unknown message type' });
     }
 
     // Required to keep the message port open for async response

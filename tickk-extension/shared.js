@@ -134,7 +134,7 @@ function createTickkButton(onClick) {
   btn.id = 'tickk-compose-btn';
   btn.title = 'Tickk — Email Tracking Active';
   btn.setAttribute('data-tickk-btn', 'true');
-  btn.innerHTML = `<span style="font-weight: 700; font-size: 14px; line-height: 1; margin-top: 1px;">✓✓</span>`;
+  btn.innerHTML = `<span class="tickk-btn-icon">✓✓</span>`;
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -182,12 +182,13 @@ function createHeaderWidget(authed, onClick) {
   widget.id = 'tickk-header-badge';
   if (authed) {
     widget.innerHTML = `
-      <span style="color: #10b981; font-weight: bold; margin-right: 4px;">✓✓</span>
-      <span>Active</span>
+      <span class="tickk-badge-icon">✓✓</span>
+      <div class="tickk-status-dot"></div>
+      <span class="tickk-badge-label">Active</span>
     `;
   } else {
     widget.innerHTML = `
-      <span>Connect Account</span>
+      <span class="tickk-badge-label">Connect Account</span>
     `;
   }
   
@@ -213,16 +214,16 @@ function createFloatingCard(email, credits, opensCount) {
     <div class="tickk-card-header">
       <div class="tickk-card-title">
         <span class="tickk-card-logo">✓✓</span> 
-        <span style="font-size: 13px; font-weight: 500; color: #9ca3af; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;" title="${email}">${email}</span>
+        <span class="tickk-card-email" title="${email}">${email}</span>
       </div>
     </div>
-    <div class="tickk-card-stat" style="background: transparent; border: 1px solid #374151; justify-content: center; margin-bottom: 12px;">
-      <div class="tickk-status-dot" style="margin-right: 8px;"></div>
-      <span style="font-weight: 500; color: #10b981;">Tracking Active</span>
+    <div class="tickk-card-stat tickk-card-stat--status">
+      <div class="tickk-status-dot"></div>
+      <span class="tickk-stat-value">Tracking Active</span>
     </div>
     <div class="tickk-card-stat">
       <span>Quick Opens</span>
-      <span class="tickk-stat-value" style="color: #60a5fa;">${opensCount}</span>
+      <span class="tickk-stat-value tickk-stat-value--blue">${opensCount}</span>
     </div>
     <div class="tickk-card-stat">
       <span>Credits</span>
@@ -307,7 +308,7 @@ function createToolbarContainer(state, onToggle, onBtnClick) {
   const toggleLabel = document.createElement('label');
   toggleLabel.className = 'tickk-toolbar-toggle-label';
   toggleLabel.innerHTML = `
-    <span>Track Mail</span>
+    <span>Track</span>
     <div class="tickk-toggle">
       <input type="checkbox" id="tickk-inline-toggle" ${state.opens ? 'checked' : ''}>
       <span class="tickk-toggle-slider"></span>
@@ -324,7 +325,7 @@ function createToolbarContainer(state, onToggle, onBtnClick) {
   btn.className = 'tickk-action-btn' + (!state.opens ? ' tickk-action-btn--inactive' : '');
   btn.id = 'tickk-compose-btn';
   btn.title = 'Tickk Options';
-  btn.innerHTML = `<span style="font-weight: 700; font-size: 14px; line-height: 1; margin-top: 1px;">✓✓</span>`;
+  btn.innerHTML = `<span class="tickk-btn-icon">✓✓</span>`;
   
   btn.addEventListener('click', (e) => {
     e.preventDefault();

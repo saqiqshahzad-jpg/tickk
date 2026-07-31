@@ -3,266 +3,224 @@
    Shared styles injected into Gmail & Outlook pages
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Tickk Action Button ─── */
-.tickk-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background: #10b981;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin: 0 4px;
-  padding: 0;
-  position: relative;
-  z-index: 1000;
+/* ─── Design Tokens ─── */
+:root {
+  --tickk-emerald: #10b981;
+  --tickk-emerald-dark: #059669;
+  --tickk-emerald-glow: rgba(16, 185, 129, 0.35);
+  --tickk-emerald-subtle: rgba(16, 185, 129, 0.5);
+  --tickk-zinc-900: rgba(24, 24, 27, 0.92);
+  --tickk-zinc-900-solid: #18181b;
+  --tickk-zinc-800: rgba(39, 39, 42, 0.8);
+  --tickk-zinc-700: #3f3f46;
+  --tickk-zinc-600: #52525b;
+  --tickk-zinc-500: #71717a;
+  --tickk-zinc-400: #a1a1aa;
+  --tickk-zinc-300: #d4d4d8;
+  --tickk-zinc-200: #e4e4e7;
+  --tickk-zinc-100: #f4f4f5;
+  --tickk-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tickk-font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+  --tickk-radius-full: 9999px;
+  --tickk-radius-lg: 12px;
+  --tickk-radius-md: 8px;
+  --tickk-radius-sm: 6px;
+  --tickk-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --tickk-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --tickk-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.45);
+  --tickk-shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --tickk-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --tickk-transition-fast: all 0.15s ease;
 }
 
-.tickk-action-btn:hover {
-  background: #059669;
-  transform: scale(1.1);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
-}
 
-.tickk-action-btn:active {
-  transform: scale(0.95);
-}
-
-/* Inactive state (tracking off) */
-.tickk-action-btn--inactive {
-  background: #6b7280;
-  opacity: 0.6;
-}
-
-.tickk-action-btn--inactive:hover {
-  background: #4b5563;
-  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.4);
-}
-
-/* Outlook-specific adjustments */
-.tickk-outlook-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 4px;
-  margin: 0 2px;
-}
-
-/* ─── Toast Notification ─── */
-.tickk-toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #fff;
-  z-index: 999999;
-  opacity: 0;
-  transform: translateY(12px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  pointer-events: none;
-  max-width: 320px;
-}
-
-.tickk-toast--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.tickk-toast--success {
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.tickk-toast--error {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.tickk-toast--info {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-}
+/* ═══════════════════════════════════════════════════════════════
+   §1 — Top Header Badge (#tickk-header-badge)
+   Ultra-sleek dark pill container with glassmorphism
+   ═══════════════════════════════════════════════════════════════ */
 
 #tickk-header-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 4px 12px;
-  background: rgba(24, 24, 27, 0.9);
-  border: 1px solid rgba(39, 39, 42, 0.8);
-  border-radius: 9999px; /* Pill shape */
-  color: #e4e4e7;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 12px;
+  background: var(--tickk-zinc-900);
+  border: 1px solid var(--tickk-zinc-800);
+  border-radius: var(--tickk-radius-full);
+  color: var(--tickk-zinc-200);
+  font-family: var(--tickk-font);
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: all 0.2s ease;
+  box-shadow: var(--tickk-shadow-md);
+  transition: var(--tickk-transition);
   z-index: 10000;
   position: relative;
   margin: 0 8px;
   box-sizing: border-box;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  user-select: none;
+  line-height: 1;
 }
 
 #tickk-header-badge:hover {
-  background: rgba(24, 24, 27, 1);
-  border-color: rgba(16, 185, 129, 0.5);
+  background: var(--tickk-zinc-900-solid);
+  border-color: var(--tickk-emerald-subtle);
+  box-shadow: var(--tickk-shadow-md), 0 0 0 1px var(--tickk-emerald-glow);
 }
 
+#tickk-header-badge:active {
+  transform: scale(0.97);
+}
+
+/* Emerald checkmark icon inside header badge */
+#tickk-header-badge .tickk-badge-icon {
+  color: var(--tickk-emerald);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Label text inside header badge */
+#tickk-header-badge .tickk-badge-label {
+  color: var(--tickk-zinc-200);
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Animated pulse dot (replaces raw red dot) */
 .tickk-status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background-color: #10b981;
-  box-shadow: 0 0 6px #10b981;
+  background-color: var(--tickk-emerald);
+  box-shadow: 0 0 6px var(--tickk-emerald-glow);
+  animation: tickk-pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes tickk-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--tickk-emerald-glow); }
+  50% { opacity: 0.6; box-shadow: 0 0 12px var(--tickk-emerald-glow); }
 }
 
 .tickk-credits-text {
-  color: #e4e4e7;
-  margin-left: 4px;
+  color: var(--tickk-zinc-400);
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: 2px;
 }
 
-/* ─── Floating Dashboard Card ─── */
-.tickk-floating-card {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  width: 280px;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  color: #e5e7eb;
-  padding: 16px;
-  z-index: 10001;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  display: none;
-  cursor: default;
-}
 
-.tickk-floating-card.active {
-  display: block;
-  animation: tickk-fade-in 0.2s ease;
-}
+/* ═══════════════════════════════════════════════════════════════
+   §2 — Compose Toolbar Button (#tickk-compose-btn)
+   Minimal dark toggle + stealth ✓✓ icon matching Gmail toolbar
+   ═══════════════════════════════════════════════════════════════ */
 
-@keyframes tickk-fade-in {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.tickk-card-header {
-  display: flex;
+.tickk-action-btn {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #374151;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--tickk-radius-sm);
+  background: transparent;
+  color: var(--tickk-emerald);
+  cursor: pointer;
+  transition: var(--tickk-transition);
+  margin: 0 2px;
+  padding: 0;
+  position: relative;
+  z-index: 1000;
+  font-family: var(--tickk-font);
+  line-height: 1;
 }
 
-.tickk-card-title {
-  font-weight: 600;
-  font-size: 15px;
-  color: #fff;
+.tickk-action-btn:hover {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
+  color: var(--tickk-emerald);
+  transform: none;
+  box-shadow: none;
+}
+
+.tickk-action-btn:active {
+  transform: scale(0.92);
+  background: rgba(16, 185, 129, 0.12);
+}
+
+/* Inactive state (tracking off) — muted stealth look */
+.tickk-action-btn--inactive {
+  background: transparent;
+  color: var(--tickk-zinc-500);
+  opacity: 0.5;
+}
+
+.tickk-action-btn--inactive:hover {
+  background: rgba(113, 113, 122, 0.08);
+  border-color: rgba(113, 113, 122, 0.2);
+  color: var(--tickk-zinc-400);
+  box-shadow: none;
+}
+
+/* Tickk icon inside the compose button */
+.tickk-action-btn .tickk-btn-icon {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+/* Outlook-specific adjustments */
+.tickk-outlook-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §3 — Inline Compose Toolbar Container
+   Toggle + Button row inside compose toolbar
+   ═══════════════════════════════════════════════════════════════ */
+
+.tickk-toolbar-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  padding: 0 4px;
+  border-radius: var(--tickk-radius-full);
+  margin-left: 4px;
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  padding-left: 8px;
+}
+
+.tickk-toolbar-toggle-label {
+  font-size: 11px;
+  color: var(--tickk-zinc-500);
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.tickk-card-logo {
-  color: #10b981;
-  font-weight: bold;
-}
-
-.tickk-card-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: #1f2937;
-  border-radius: 6px;
-  margin-bottom: 8px;
-  font-size: 13px;
-}
-
-.tickk-stat-value {
-  color: #10b981;
-  font-weight: 600;
-}
-
-.tickk-card-footer {
-  margin-top: 16px;
-  text-align: center;
-}
-
-.tickk-btn {
-  background: #10b981;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
-  width: 100%;
+  font-family: var(--tickk-font);
+  user-select: none;
+  white-space: nowrap;
 }
 
-.tickk-btn:hover {
-  background: #059669;
-}
-
-/* ─── Compose Pop-up Menu ─── */
-.tickk-compose-popup {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 8px;
-  width: 220px;
-  background: #09090b;
-  border: 1px solid #27272a;
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-  padding: 12px;
-  z-index: 10001;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #e4e4e7;
-  display: none;
-  box-sizing: border-box;
-}
-
-.tickk-compose-popup.active {
-  display: block;
-}
-
-.tickk-popup-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  color: #e4e4e7;
-  transition: background 0.2s ease;
-}
-
-.tickk-popup-item:hover {
-  background: #27272a;
-}
-
-/* Toggle Switch (Small) */
+/* Toggle Switch (compact, refined) */
 .tickk-toggle {
   position: relative;
   display: inline-block;
-  width: 32px;
-  height: 18px;
+  width: 28px;
+  height: 16px;
 }
 
 .tickk-toggle input {
@@ -278,89 +236,309 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #4b5563;
-  transition: .2s;
-  border-radius: 18px;
+  background-color: var(--tickk-zinc-600);
+  transition: var(--tickk-transition-fast);
+  border-radius: 16px;
 }
 
 .tickk-toggle-slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
+  height: 12px;
+  width: 12px;
   left: 2px;
   bottom: 2px;
   background-color: white;
-  transition: .2s;
+  transition: var(--tickk-transition-fast);
   border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .tickk-toggle input:checked + .tickk-toggle-slider {
-  background-color: #10b981;
+  background-color: var(--tickk-emerald);
 }
 
 .tickk-toggle input:checked + .tickk-toggle-slider:before {
-  transform: translateX(14px);
+  transform: translateX(12px);
 }
 
-/* ─── Stealth Reassurance Hint ─── */
+
+/* ═══════════════════════════════════════════════════════════════
+   §4 — Stealth Hint Badge (Compose Footer)
+   Elegant muted monospace text badge
+   ═══════════════════════════════════════════════════════════════ */
+
 .tickk-stealth-hint {
-  font-size: 12px;
-  color: #71717a;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: transparent;
   display: inline-flex;
-  align-items: center;
-  margin-top: 4px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  pointer-events: none;
-}
-
-/* ─── Inline Compose Toolbar Elements ─── */
-.tickk-toolbar-container {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  padding: 2px 8px;
-  border-radius: 20px;
-}
-
-.tickk-toolbar-toggle-label {
-  font-size: 13px;
-  color: #4b5563;
-  font-weight: 500;
-  display: flex;
   align-items: center;
   gap: 6px;
-  cursor: pointer;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--tickk-font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--tickk-zinc-500);
+  padding: 4px 10px;
+  border-radius: var(--tickk-radius-full);
+  background: transparent;
+  margin-top: 4px;
+  pointer-events: none;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  opacity: 0.85;
+  user-select: none;
 }
 
-/* ─── Stealth Hint Badge ─── */
+/* Stealth Hint Badge inside popup */
 .tickk-stealth-hint-badge {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 10px;
   padding: 6px 10px;
-  background: rgba(24, 24, 27, 0.6);
-  border: 1px solid #27272a;
-  border-radius: 8px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 11px;
-  color: #a1a1aa;
-  font-weight: 500;
-  letter-spacing: 0.2px;
+  background: rgba(16, 185, 129, 0.04);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: var(--tickk-radius-sm);
+  font-family: var(--tickk-font-mono);
+  font-size: 10px;
+  color: var(--tickk-zinc-500);
+  font-weight: 400;
+  letter-spacing: 0.02em;
   box-sizing: border-box;
 }
 
 .tickk-stealth-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background-color: #34d399;
-  box-shadow: 0 0 8px 1px rgba(52, 211, 153, 0.4);
+  background-color: var(--tickk-emerald);
+  box-shadow: 0 0 6px 1px var(--tickk-emerald-glow);
+  animation: tickk-pulse 2.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §5 — Toast Notification
+   ═══════════════════════════════════════════════════════════════ */
+
+.tickk-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 18px;
+  border-radius: var(--tickk-radius-md);
+  font-family: var(--tickk-font);
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 999999;
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--tickk-shadow-lg);
+  pointer-events: none;
+  max-width: 300px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  letter-spacing: 0.01em;
+}
+
+.tickk-toast--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.tickk-toast--success {
+  background: linear-gradient(135deg, var(--tickk-emerald), var(--tickk-emerald-dark));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tickk-toast--error {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tickk-toast--info {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §6 — Floating Dashboard Card
+   ═══════════════════════════════════════════════════════════════ */
+
+.tickk-floating-card {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 280px;
+  background: var(--tickk-zinc-900-solid);
+  border: 1px solid var(--tickk-zinc-700);
+  border-radius: var(--tickk-radius-lg);
+  box-shadow: var(--tickk-shadow-lg);
+  color: var(--tickk-zinc-200);
+  padding: 16px;
+  z-index: 10001;
+  font-family: var(--tickk-font);
+  display: none;
+  cursor: default;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.tickk-floating-card.active {
+  display: block;
+  animation: tickk-card-enter 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes tickk-card-enter {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.tickk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--tickk-zinc-700);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.tickk-card-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tickk-card-logo {
+  color: var(--tickk-emerald);
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.tickk-card-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--tickk-radius-sm);
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--tickk-zinc-400);
+  transition: var(--tickk-transition-fast);
+}
+
+.tickk-card-stat:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tickk-stat-value {
+  color: var(--tickk-emerald);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tickk-stat-value--blue {
+  color: #60a5fa;
+}
+
+.tickk-card-email {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tickk-zinc-400);
+  margin-left: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 170px;
+}
+
+.tickk-card-stat--status {
+  background: transparent;
+  border-color: var(--tickk-zinc-700);
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tickk-card-footer {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.tickk-btn {
+  background: var(--tickk-emerald);
+  color: #fff;
+  border: none;
+  border-radius: var(--tickk-radius-sm);
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--tickk-transition-fast);
+  width: 100%;
+  letter-spacing: 0.01em;
+}
+
+.tickk-btn:hover {
+  background: var(--tickk-emerald-dark);
+  box-shadow: 0 2px 8px var(--tickk-emerald-glow);
+}
+
+.tickk-btn:active {
+  transform: scale(0.98);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   §7 — Compose Pop-up Menu
+   ═══════════════════════════════════════════════════════════════ */
+
+.tickk-compose-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  width: 200px;
+  background: var(--tickk-zinc-900-solid);
+  border: 1px solid var(--tickk-zinc-700);
+  border-radius: var(--tickk-radius-lg);
+  box-shadow: var(--tickk-shadow-xl);
+  padding: 10px;
+  z-index: 10001;
+  font-family: var(--tickk-font);
+  color: var(--tickk-zinc-200);
+  display: none;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.tickk-compose-popup.active {
+  display: block;
+  animation: tickk-card-enter 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tickk-popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 8px;
+  border-radius: var(--tickk-radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--tickk-zinc-300);
+  transition: var(--tickk-transition-fast);
+}
+
+.tickk-popup-item:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
