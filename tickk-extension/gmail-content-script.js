@@ -119,7 +119,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
     const trigger = document.createElement('div');
     trigger.id = 'tickk-header-trigger';
-    trigger.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; align-self: center; margin-right: 8px;';
+    // Styling is handled entirely by content-style.css
     trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 22px; height: 22px; display: block;" />`;
     
     trigger.onmouseenter = () => trigger.style.backgroundColor = 'rgba(255,255,255,0.1)';
@@ -131,8 +131,19 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       toggleMiniDashboard(trigger);
     });
 
-    // Insert directly inside top bar
+    // Insert directly to #gb, but protect it with a MutationObserver
     gbHeader.appendChild(trigger);
+
+    // Watch for Gmail's SPA wiping the element and re-insert immediately
+    if (!window.tickkHeaderObserver) {
+      window.tickkHeaderObserver = new MutationObserver(() => {
+        if (!document.querySelector('#tickk-header-trigger')) {
+          const currentGb = document.querySelector('#gb');
+          if (currentGb) currentGb.appendChild(trigger);
+        }
+      });
+      window.tickkHeaderObserver.observe(document.body, { childList: true, subtree: true });
+    }
   }
 
   function toggleMiniDashboard(trigger) {
@@ -146,23 +157,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     modal = document.createElement('div');
     modal.id = 'tickk-mini-modal';
     
-    // Position it below the trigger icon
-    const rect = trigger.getBoundingClientRect();
-    modal.style.cssText = `
-      position: fixed;
-      top: ${rect.bottom + 8}px;
-      right: ${window.innerWidth - rect.right - 20}px;
-      width: 280px;
-      background: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 12px;
-      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5), 0 4px 6px -2px rgba(0,0,0,0.3);
-      z-index: 999999;
-      padding: 16px;
-      font-family: Inter, Arial, sans-serif;
-      color: #e4e4e7;
-    `;
-    
+    // Styling is completely handled by content-style.css to prevent Gmail overrides
     chrome.storage.local.get(['tickk_api_key', 'tickk_user_email'], (res) => {
       const email = res.tickk_user_email || 'Logged Out';
       const isLoggedIn = !!res.tickk_api_key;

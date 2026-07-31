@@ -535,6 +535,11 @@
   z-index: 9999 !important;
   width: 34px !important;
   height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  box-sizing: border-box !important;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;

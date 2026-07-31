@@ -45,6 +45,17 @@
     }
   ],
 
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": [
+        "https://mail.google.com/*",
+        "https://outlook.live.com/*",
+        "https://outlook.office.com/*"
+      ]
+    }
+  ],
+
   "externally_connectable": {
     "matches": ["https://tickk.online/*"]
   },
