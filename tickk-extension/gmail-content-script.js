@@ -26,7 +26,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       const authed = await isAuthenticated();
       
       // Inject header widget regardless of auth state
-      injectHeaderIcon();
+      injectTopRightHeaderIcon();
       
       // ALWAYS observe compose windows (so the UI draws even if not authenticated)
       trackingEnabledGlobal = await isTrackingEnabled();
@@ -38,13 +38,13 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         if (namespace === 'local' && changes.tickk_api_key) {
           const oldTrigger = document.querySelector('#tickk-header-trigger');
           if (oldTrigger) oldTrigger.remove();
-          injectHeaderIcon();
+          injectTopRightHeaderIcon();
           
           // Re-render modal if open
           const modal = document.querySelector('#tickk-mini-modal');
           if (modal && modal.style.display !== 'none') {
              modal.remove();
-             toggleMiniDashboard();
+             toggleMiniDashboard(document.querySelector('#tickk-header-trigger'));
           }
         }
       });
@@ -110,28 +110,29 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   }
 
   // ─── Header Injection ───
-  function injectHeaderIcon() {
-    const settingsBtn = document.querySelector('div[aria-label="Settings"]')?.parentElement;
-    
-    if (settingsBtn && !document.querySelector('#tickk-header-trigger')) {
-      const trigger = document.createElement('div');
-      trigger.id = 'tickk-header-trigger';
-      trigger.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; margin-right: 4px;';
-      trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 20px; height: 20px;" />`;
-      
-      // Hover effect
-      trigger.onmouseenter = () => trigger.style.backgroundColor = 'rgba(255,255,255,0.1)';
-      trigger.onmouseleave = () => trigger.style.backgroundColor = 'transparent';
+  function injectTopRightHeaderIcon() {
+    if (document.querySelector('#tickk-header-trigger')) return;
 
-      // Insert right next to Settings gear icon
-      settingsBtn.parentNode.insertBefore(trigger, settingsBtn);
-      
-      // Click Event: Toggle Mini-Dashboard Dropdown
-      trigger.onclick = (e) => {
-        e.stopPropagation();
-        toggleMiniDashboard(trigger);
-      };
-    }
+    // Target Gmail Top Header Right Container
+    const gbHeader = document.querySelector('#gb');
+    if (!gbHeader) return;
+
+    const trigger = document.createElement('div');
+    trigger.id = 'tickk-header-trigger';
+    trigger.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; align-self: center; margin-right: 8px;';
+    trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 22px; height: 22px; display: block;" />`;
+    
+    trigger.onmouseenter = () => trigger.style.backgroundColor = 'rgba(255,255,255,0.1)';
+    trigger.onmouseleave = () => trigger.style.backgroundColor = 'transparent';
+
+    // Modal Toggle
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMiniDashboard(trigger);
+    });
+
+    // Insert directly inside top bar
+    gbHeader.appendChild(trigger);
   }
 
   function toggleMiniDashboard(trigger) {
@@ -199,7 +200,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   }
 
   // Run on interval / observer to ensure Gmail SPA doesn't wipe it
-  setInterval(injectHeaderIcon, 1500);
+  setInterval(injectTopRightHeaderIcon, 1000);
 
   // ─── Inject Tickk Toggle Button in Compose Toolbar ───
   function injectToolbarButton(composeContainer, composeBody) {
