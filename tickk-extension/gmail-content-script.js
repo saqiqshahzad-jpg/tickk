@@ -105,51 +105,27 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
   // ─── Header Injection ───
   async function injectHeaderWidget(authed) {
-    if (document.querySelector('.tickk-header-widget')) return;
+    if (document.querySelector('#tickk-header-badge')) return;
 
-    // Look for Gmail's top right action container
-    const headerContainer = document.querySelector('#gb') || document.querySelector('header');
-    if (!headerContainer) {
-      setTimeout(() => injectHeaderWidget(authed), 1000);
-      return;
-    }
-
-    const rightActionArea = headerContainer.querySelector('.gb_3e') || headerContainer.querySelector('.gb_Se') || headerContainer.querySelector('[role="banner"] > div:last-child') || headerContainer.lastElementChild;
+    // Target the right side of Gmail's top header (#gb)
+    const rightActionArea = document.querySelector('#gb > div > div > div:last-child') || document.querySelector('.gb_3e') || document.querySelector('.gb_Se');
     if (!rightActionArea) {
       setTimeout(() => injectHeaderWidget(authed), 1000);
       return;
     }
 
-    let credits = 0;
-    let authData = { email: 'Not Connected', opensCount: 0 };
-    if (authed) {
-      const userInfo = await getUserInfo();
-      credits = userInfo.success ? userInfo.credits : 0;
-      authData = await getStoredAuth();
-    }
-
     const widget = createHeaderWidget(authed, (btn) => {
-      if (!authed) {
-        window.open('https://tickk.online/onboarding', '_blank');
-        return;
-      }
-
-      let card = btn.querySelector('.tickk-floating-card');
-      if (!card) {
-        card = createFloatingCard(authData.email, credits, authData.opensCount);
-        btn.appendChild(card);
-      }
-      card.classList.toggle('active');
-
-      const closeHandler = (clickEvent) => {
-        if (!card.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
-          card.classList.remove('active');
-          document.removeEventListener('click', closeHandler);
+      chrome.storage.local.get(['tickk_api_key'], (res) => {
+        if (res.tickk_api_key) {
+          window.open('https://tickk.online/dashboard', '_blank');
+        } else {
+          window.open('https://tickk.online/onboarding', '_blank');
         }
-      };
-      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+      });
     });
 
+    // Style adjustment for #gb integration
+    widget.style.marginRight = '12px';
     rightActionArea.insertBefore(widget, rightActionArea.firstChild);
   }
 

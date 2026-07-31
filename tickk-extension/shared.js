@@ -192,17 +192,16 @@ function createHeaderWidget(authed, onClick) {
   style.textContent = `
     * { box-sizing: border-box; font-family: Inter, sans-serif; }
     .tickk-pill-badge {
-      display: inline-flex;
+      background-color: #09090b;
+      border: 1px solid #27272a;
+      color: #e4e4e7;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 12px;
-      background: #09090b; /* Zinc 950 */
-      color: #e4e4e7;
-      border: 1px solid #27272a; /* Zinc 800 */
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       line-height: 1;
@@ -224,7 +223,7 @@ function createHeaderWidget(authed, onClick) {
     .tickk-pill-label {
       color: #d4d4d8;
       font-weight: 500;
-      font-size: 11px;
+      font-size: 12px;
     }
     .tickk-status-dot {
       width: 6px;
@@ -246,12 +245,13 @@ function createHeaderWidget(authed, onClick) {
   
   if (authed) {
     widget.innerHTML = `
-      <span class="tickk-pill-icon">✓✓</span>
       <div class="tickk-status-dot"></div>
+      <span class="tickk-pill-icon">✓✓</span>
       <span class="tickk-pill-label">Active</span>
     `;
   } else {
     widget.innerHTML = `
+      <div class="tickk-status-dot" style="background-color: #52525b; box-shadow: none; animation: none;"></div>
       <span class="tickk-pill-icon disabled">✓✓</span>
       <span class="tickk-pill-label">Connect Account</span>
     `;

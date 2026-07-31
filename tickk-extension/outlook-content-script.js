@@ -101,7 +101,7 @@
 
   // ─── Header Injection ───
   async function injectHeaderWidget(authed) {
-    if (document.querySelector('.tickk-header-widget')) return;
+    if (document.querySelector('#tickk-header-badge')) return;
 
     // Look for Outlook's top right action container near Settings
     const settingsBtn = document.querySelector('#O365_MainLink_Settings');
@@ -112,36 +112,17 @@
       return;
     }
 
-    let credits = 0;
-    let authData = { email: 'Not Connected', opensCount: 0 };
-    if (authed) {
-      const userInfo = await getUserInfo();
-      credits = userInfo.success ? userInfo.credits : 0;
-      authData = await getStoredAuth();
-    }
-
     const widget = createHeaderWidget(authed, (btn) => {
-      if (!authed) {
-        window.open('https://tickk.online/onboarding', '_blank');
-        return;
-      }
-
-      let card = btn.querySelector('.tickk-floating-card');
-      if (!card) {
-        card = createFloatingCard(authData.email, credits, authData.opensCount);
-        btn.appendChild(card);
-      }
-      card.classList.toggle('active');
-
-      const closeHandler = (clickEvent) => {
-        if (!card.contains(clickEvent.target) && !btn.contains(clickEvent.target)) {
-          card.classList.remove('active');
-          document.removeEventListener('click', closeHandler);
+      chrome.storage.local.get(['tickk_api_key'], (res) => {
+        if (res.tickk_api_key) {
+          window.open('https://tickk.online/dashboard', '_blank');
+        } else {
+          window.open('https://tickk.online/onboarding', '_blank');
         }
-      };
-      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+      });
     });
 
+    widget.style.marginRight = '12px';
     headerContainer.insertBefore(widget, headerContainer.firstChild);
   }
 
