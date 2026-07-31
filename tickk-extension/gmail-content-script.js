@@ -28,51 +28,69 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       // Inject header widget regardless of auth state
       injectHeaderWidget(authed);
       
-      if (authed) {
-        trackingEnabledGlobal = await isTrackingEnabled();
-        observeComposeWindows();
-        console.log('[Tickk Gmail] Content script initialized.');
-      } else {
-        console.log('[Tickk Gmail] Not authenticated — injected Connect button only.');
-      }
+      // ALWAYS observe compose windows (so the UI draws even if not authenticated)
+      trackingEnabledGlobal = await isTrackingEnabled();
+      observeComposeWindows();
+      console.log('[Tickk Gmail] Content script initialized.');
+
+      // Listen for background token syncs to update header dynamically without reloading
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local' && changes.tickk_api_key) {
+          const isNowAuthed = !!changes.tickk_api_key.newValue;
+          const oldHeader = document.querySelector('#tickk-header-badge');
+          if (oldHeader) oldHeader.remove();
+          injectHeaderWidget(isNowAuthed);
+        }
+      });
     } catch (e) {
       console.error('TICKK ERROR:', e);
     }
   }
 
-  // ─── MutationObserver: Watch for Compose Windows ───
+  // ─── Robust DOM Polling for Compose Windows ───
   function observeComposeWindows() {
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+    let scanTimeout = null;
 
-          // Check if this node or its children contain a compose body
-          const composeBodies = node.matches?.(COMPOSE_BODY_SELECTOR)
-            ? [node]
-            : node.querySelectorAll?.(COMPOSE_BODY_SELECTOR) || [];
+    const checkForComposeWindows = () => {
+      const sendButtonTables = document.querySelectorAll('.gU.Up');
+      
+      sendButtonTables.forEach((table) => {
+        const composeContainer = table.closest('[role="dialog"]') || table.closest('form') || table.parentElement;
+        if (!composeContainer) return;
+        
+        // Use the compose body for metadata attributes
+        const composeBody = composeContainer.querySelector(COMPOSE_BODY_SELECTOR);
+        if (!composeBody) return;
 
-          for (const composeBody of composeBodies) {
-            if (composeBody.getAttribute(PROCESSED_ATTR)) continue;
-            composeBody.setAttribute(PROCESSED_ATTR, 'true');
-            handleComposeWindow(composeBody);
-          }
-        }
-      }
+        if (composeBody.getAttribute(PROCESSED_ATTR)) return;
+        composeBody.setAttribute(PROCESSED_ATTR, 'true');
+        
+        handleComposeWindow(composeBody, composeContainer);
+      });
+    };
+
+    const observer = new MutationObserver(() => {
+      if (scanTimeout) cancelAnimationFrame(scanTimeout);
+      scanTimeout = requestAnimationFrame(() => {
+        checkForComposeWindows();
+      });
     });
 
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
+    
+    // Also run once on load
+    checkForComposeWindows();
   }
 
   // ─── Handle Individual Compose Window ───
-  function handleComposeWindow(composeBody) {
+  function handleComposeWindow(composeBody, providedContainer) {
     console.log('[Tickk Gmail] Compose window detected.');
 
     // Find the compose container (walk up to the compose root)
-    const composeContainer = composeBody.closest('.M9');
+    const composeContainer = providedContainer || composeBody.closest('.M9');
     if (!composeContainer) {
       console.warn('[Tickk Gmail] Could not find compose container.');
       return;

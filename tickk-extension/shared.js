@@ -177,27 +177,94 @@ function showTickkToast(message, type = 'info') {
  * @returns {HTMLDivElement}
  */
 function createHeaderWidget(authed, onClick) {
-  const widget = document.createElement('div');
-  widget.className = 'tickk-header-widget';
-  widget.id = 'tickk-header-badge';
+  // Scoped Host Container to protect against Gmail CSS
+  const host = document.createElement('div');
+  host.className = 'tickk-header-host';
+  host.id = 'tickk-header-badge';
+  host.style.all = 'initial';
+  host.style.display = 'inline-flex';
+  host.style.alignItems = 'center';
+  
+  const shadowRoot = host.attachShadow({ mode: 'open' });
+  
+  // Inject exactly requested dashboard palette styles
+  const style = document.createElement('style');
+  style.textContent = `
+    * { box-sizing: border-box; font-family: Inter, sans-serif; }
+    .tickk-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: #09090b; /* Zinc 950 */
+      color: #e4e4e7;
+      border: 1px solid #27272a; /* Zinc 800 */
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      line-height: 1;
+      margin: 0 8px;
+    }
+    .tickk-pill-badge:hover {
+      border-color: rgba(16, 185, 129, 0.5);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.15);
+    }
+    .tickk-pill-icon {
+      color: #10b981; /* Emerald 500 */
+      font-weight: 700;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .tickk-pill-icon.disabled {
+      color: #52525b; /* Zinc 600 */
+    }
+    .tickk-pill-label {
+      color: #d4d4d8;
+      font-weight: 500;
+      font-size: 11px;
+    }
+    .tickk-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(16, 185, 129, 0.35); }
+      50% { opacity: 0.6; box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); }
+    }
+  `;
+  shadowRoot.appendChild(style);
+
+  const widget = document.createElement('button');
+  widget.className = 'tickk-pill-badge';
+  
   if (authed) {
     widget.innerHTML = `
-      <span class="tickk-badge-icon">✓✓</span>
+      <span class="tickk-pill-icon">✓✓</span>
       <div class="tickk-status-dot"></div>
-      <span class="tickk-badge-label">Active</span>
+      <span class="tickk-pill-label">Active</span>
     `;
   } else {
     widget.innerHTML = `
-      <span class="tickk-badge-label">Connect Account</span>
+      <span class="tickk-pill-icon disabled">✓✓</span>
+      <span class="tickk-pill-label">Connect Account</span>
     `;
   }
   
   widget.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onClick) onClick(widget, e);
+    if (onClick) onClick(host, e); // Pass host to attach floating card to
   });
-  return widget;
+  
+  shadowRoot.appendChild(widget);
+  return host;
 }
 
 /**
@@ -301,9 +368,124 @@ function createComposePopup(state, onChange) {
  * @param {Function} onBtnClick - callback on button click
  */
 function createToolbarContainer(state, onToggle, onBtnClick) {
+  const host = document.createElement('div');
+  host.className = 'tickk-toolbar-host';
+  host.setAttribute('data-tickk-btn', 'true');
+  host.style.all = 'initial';
+  host.style.display = 'inline-flex';
+  host.style.alignItems = 'center';
+  host.style.marginLeft = '4px';
+
+  const shadowRoot = host.attachShadow({ mode: 'open' });
+  
+  const style = document.createElement('style');
+  style.textContent = `
+    * { box-sizing: border-box; font-family: Inter, sans-serif; }
+    
+    .tickk-toolbar-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 4px 0 8px;
+      border-radius: 9999px;
+      border-left: 1px solid #27272a; /* Zinc 800 */
+    }
+
+    .tickk-toolbar-toggle-label {
+      font-size: 11px;
+      color: #71717a; /* Zinc 500 */
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* Toggle Switch */
+    .tickk-toggle {
+      position: relative;
+      display: inline-block;
+      width: 28px;
+      height: 16px;
+    }
+    .tickk-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .tickk-toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #52525b; /* Zinc 600 */
+      transition: all 0.15s ease;
+      border-radius: 16px;
+    }
+    .tickk-toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 2px;
+      bottom: 2px;
+      background-color: #ffffff;
+      transition: all 0.15s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .tickk-toggle input:checked + .tickk-toggle-slider {
+      background-color: #10b981; /* Emerald 500 */
+    }
+    .tickk-toggle input:checked + .tickk-toggle-slider:before {
+      transform: translateX(12px);
+    }
+
+    .tickk-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #10b981; /* Emerald 500 */
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      margin: 0 2px;
+      padding: 0;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1;
+      letter-spacing: -0.5px;
+    }
+    .tickk-action-btn:hover {
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.2);
+    }
+    .tickk-action-btn:active {
+      transform: scale(0.92);
+      background: rgba(16, 185, 129, 0.12);
+    }
+    .tickk-action-btn--inactive {
+      color: #71717a; /* Zinc 500 */
+      opacity: 0.5;
+    }
+    .tickk-action-btn--inactive:hover {
+      background: rgba(113, 113, 122, 0.08);
+      border-color: rgba(113, 113, 122, 0.2);
+      color: #a1a1aa; /* Zinc 400 */
+    }
+  `;
+  shadowRoot.appendChild(style);
+
   const container = document.createElement('div');
   container.className = 'tickk-toolbar-container';
-  container.setAttribute('data-tickk-btn', 'true');
 
   const toggleLabel = document.createElement('label');
   toggleLabel.className = 'tickk-toolbar-toggle-label';
@@ -330,11 +512,12 @@ function createToolbarContainer(state, onToggle, onBtnClick) {
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onBtnClick) onBtnClick(btn, e);
+    if (onBtnClick) onBtnClick(host, e); // Pass host instead of inner btn
   });
   
   container.appendChild(toggleLabel);
   container.appendChild(btn);
+  shadowRoot.appendChild(container);
 
-  return { container, btn, toggleInput };
+  return { container: host, btn: host, toggleInput };
 }

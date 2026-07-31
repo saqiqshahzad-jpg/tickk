@@ -36,7 +36,7 @@
         "https://outlook.office.com/*"
       ],
       "js": ["shared.js", "outlook-content-script.js"],
-      "css": ["content-style.css"],
+      "css": ["content-style.css"]
     },
     {
       "matches": ["https://tickk.online/*"],

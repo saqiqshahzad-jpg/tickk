@@ -27,13 +27,20 @@
     
     injectHeaderWidget(authed);
     
-    if (authed) {
-      trackingEnabledGlobal = await isTrackingEnabled();
-      observeComposeWindows();
-      console.log('[Tickk Outlook] Content script initialized.');
-    } else {
-      console.log('[Tickk Outlook] Not authenticated — injected Connect button only.');
-    }
+    // ALWAYS observe compose panes
+    trackingEnabledGlobal = await isTrackingEnabled();
+    observeComposeWindows();
+    console.log('[Tickk Outlook] Content script initialized.');
+
+    // Listen for background token syncs to update header dynamically without reloading
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.tickk_api_key) {
+        const isNowAuthed = !!changes.tickk_api_key.newValue;
+        const oldHeader = document.querySelector('#tickk-header-badge');
+        if (oldHeader) oldHeader.remove();
+        injectHeaderWidget(isNowAuthed);
+      }
+    });
   }
 
   // ─── MutationObserver: Watch for Compose Panes ───
