@@ -131,13 +131,10 @@ async function isTrackingEnabled() {
 function createTickkButton(onClick) {
   const btn = document.createElement('button');
   btn.className = 'tickk-action-btn';
+  btn.id = 'tickk-compose-btn';
   btn.title = 'Tickk — Email Tracking Active';
   btn.setAttribute('data-tickk-btn', 'true');
-  btn.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
-    </svg>
-  `;
+  btn.innerHTML = `<span style="font-weight: 700; font-size: 14px; line-height: 1; margin-top: 1px;">✓✓</span>`;
   btn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -182,16 +179,14 @@ function showTickkToast(message, type = 'info') {
 function createHeaderWidget(authed, onClick) {
   const widget = document.createElement('div');
   widget.className = 'tickk-header-widget';
+  widget.id = 'tickk-header-badge';
   if (authed) {
     widget.innerHTML = `
-      <span class="tickk-card-logo" style="margin-right: 4px;">✓✓</span>
-      <span style="color: #4b5563; margin-right: 4px;">|</span>
-      <div class="tickk-status-dot" style="margin-right: 4px;"></div>
+      <span style="color: #10b981; font-weight: bold; margin-right: 4px;">✓✓</span>
       <span>Active</span>
     `;
   } else {
     widget.innerHTML = `
-      <div class="tickk-status-dot" style="background-color: #ef4444; box-shadow: 0 0 6px #ef4444;"></div>
       <span>Connect Account</span>
     `;
   }
@@ -327,12 +322,9 @@ function createToolbarContainer(state, onToggle, onBtnClick) {
 
   const btn = document.createElement('button');
   btn.className = 'tickk-action-btn' + (!state.opens ? ' tickk-action-btn--inactive' : '');
+  btn.id = 'tickk-compose-btn';
   btn.title = 'Tickk Options';
-  btn.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-      <path d="M18 7l-1.41-1.41-6.34 6.34 1.41 1.41L18 7zm4.24-1.41L11.66 16.17 7.48 12l-1.41 1.41L11.66 19l12-12-1.42-1.41zM.41 13.41L6 19l1.41-1.41L1.83 12 .41 13.41z"/>
-    </svg>
-  `;
+  btn.innerHTML = `<span style="font-weight: 700; font-size: 14px; line-height: 1; margin-top: 1px;">✓✓</span>`;
   
   btn.addEventListener('click', (e) => {
     e.preventDefault();
