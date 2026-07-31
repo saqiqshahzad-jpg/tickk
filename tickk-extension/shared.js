@@ -177,94 +177,30 @@ function showTickkToast(message, type = 'info') {
  * @returns {HTMLDivElement}
  */
 function createHeaderWidget(authed, onClick) {
-  // Scoped Host Container to protect against Gmail CSS
-  const host = document.createElement('div');
-  host.className = 'tickk-header-host';
-  host.id = 'tickk-header-badge';
-  host.style.all = 'initial';
-  host.style.display = 'inline-flex';
-  host.style.alignItems = 'center';
-  
-  const shadowRoot = host.attachShadow({ mode: 'open' });
-  
-  // Inject exactly requested dashboard palette styles
-  const style = document.createElement('style');
-  style.textContent = `
-    * { box-sizing: border-box; font-family: Inter, sans-serif; }
-    .tickk-pill-badge {
-      background-color: #09090b;
-      border: 1px solid #27272a;
-      color: #e4e4e7;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 12px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      line-height: 1;
-      margin: 0 8px;
-    }
-    .tickk-pill-badge:hover {
-      border-color: rgba(16, 185, 129, 0.5);
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(16, 185, 129, 0.15);
-    }
-    .tickk-pill-icon {
-      color: #10b981; /* Emerald 500 */
-      font-weight: 700;
-      font-size: 12px;
-      line-height: 1;
-    }
-    .tickk-pill-icon.disabled {
-      color: #52525b; /* Zinc 600 */
-    }
-    .tickk-pill-label {
-      color: #d4d4d8;
-      font-weight: 500;
-      font-size: 12px;
-    }
-    .tickk-status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: #10b981;
-      box-shadow: 0 0 6px rgba(16, 185, 129, 0.35);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(16, 185, 129, 0.35); }
-      50% { opacity: 0.6; box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); }
-    }
-  `;
-  shadowRoot.appendChild(style);
-
-  const widget = document.createElement('button');
-  widget.className = 'tickk-pill-badge';
+  const widget = document.createElement('div');
+  widget.id = 'tickk-header-badge';
   
   if (authed) {
     widget.innerHTML = `
       <div class="tickk-status-dot"></div>
-      <span class="tickk-pill-icon">✓✓</span>
-      <span class="tickk-pill-label">Active</span>
+      <span class="tickk-badge-icon">✓✓</span>
+      <span class="tickk-badge-label">Active</span>
     `;
   } else {
     widget.innerHTML = `
       <div class="tickk-status-dot" style="background-color: #52525b; box-shadow: none; animation: none;"></div>
-      <span class="tickk-pill-icon disabled">✓✓</span>
-      <span class="tickk-pill-label">Connect Account</span>
+      <span class="tickk-badge-icon" style="color: #52525b;">✓✓</span>
+      <span class="tickk-badge-label">Connect Account</span>
     `;
   }
   
   widget.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onClick) onClick(host, e); // Pass host to attach floating card to
+    if (onClick) onClick(widget, e);
   });
   
-  shadowRoot.appendChild(widget);
-  return host;
+  return widget;
 }
 
 /**

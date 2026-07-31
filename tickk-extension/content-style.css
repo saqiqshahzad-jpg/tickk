@@ -40,39 +40,19 @@
    ═══════════════════════════════════════════════════════════════ */
 
 #tickk-header-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: var(--tickk-zinc-900);
-  border: 1px solid var(--tickk-zinc-800);
-  border-radius: var(--tickk-radius-full);
-  color: var(--tickk-zinc-200);
-  font-family: var(--tickk-font);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  box-shadow: var(--tickk-shadow-md);
-  transition: var(--tickk-transition);
-  z-index: 10000;
-  position: relative;
-  margin: 0 8px;
-  box-sizing: border-box;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  user-select: none;
-  line-height: 1;
+  background-color: #09090b !important;
+  border: 1px solid #27272a !important;
+  border-radius: 9999px !important;
+  padding: 5px 12px !important;
+  margin-right: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s ease !important;
 }
-
 #tickk-header-badge:hover {
-  background: var(--tickk-zinc-900-solid);
-  border-color: var(--tickk-emerald-subtle);
-  box-shadow: var(--tickk-shadow-md), 0 0 0 1px var(--tickk-emerald-glow);
-}
-
-#tickk-header-badge:active {
-  transform: scale(0.97);
+  border-color: #10b981 !important;
 }
 
 /* Emerald checkmark icon inside header badge */

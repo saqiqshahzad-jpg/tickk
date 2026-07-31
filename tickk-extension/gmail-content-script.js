@@ -26,7 +26,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       const authed = await isAuthenticated();
       
       // Inject header widget regardless of auth state
-      injectHeaderWidget(authed);
+      injectHeaderBadge();
       
       // ALWAYS observe compose windows (so the UI draws even if not authenticated)
       trackingEnabledGlobal = await isTrackingEnabled();
@@ -36,10 +36,9 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       // Listen for background token syncs to update header dynamically without reloading
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local' && changes.tickk_api_key) {
-          const isNowAuthed = !!changes.tickk_api_key.newValue;
           const oldHeader = document.querySelector('#tickk-header-badge');
           if (oldHeader) oldHeader.remove();
-          injectHeaderWidget(isNowAuthed);
+          injectHeaderBadge();
         }
       });
     } catch (e) {
@@ -104,30 +103,39 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   }
 
   // ─── Header Injection ───
-  async function injectHeaderWidget(authed) {
-    if (document.querySelector('#tickk-header-badge')) return;
-
-    // Target the right side of Gmail's top header (#gb)
-    const rightActionArea = document.querySelector('#gb > div > div > div:last-child') || document.querySelector('.gb_3e') || document.querySelector('.gb_Se');
-    if (!rightActionArea) {
-      setTimeout(() => injectHeaderWidget(authed), 1000);
-      return;
+  function injectHeaderBadge() {
+    // Gmail Top-Right Action Area (Settings/Profile icon container)
+    const headerContainer = document.querySelector('#gb div[aria-label="Settings"]')?.parentElement || document.querySelector('#gb');
+    
+    if (headerContainer && !document.querySelector('#tickk-header-badge')) {
+      const badge = document.createElement('div');
+      badge.id = 'tickk-header-badge';
+      
+      // Inline styling to make it look like a clean pill
+      badge.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 4px 12px; background: #09090b; border: 1px solid #27272a; border-radius: 9999px; cursor: pointer; margin-right: 12px; margin-top: auto; margin-bottom: auto;';
+      
+      badge.innerHTML = `
+        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px rgba(16,185,129,0.5);"></span>
+        <span style="color: #e4e4e7; font-size: 12px; font-weight: 600;">Tickk</span>
+      `;
+      
+      // Click Handler to Open Dashboard / Onboarding
+      badge.onclick = () => {
+        chrome.storage.local.get(['tickk_api_key'], (res) => {
+          if (res.tickk_api_key) {
+            window.open('https://tickk.online/dashboard', '_blank');
+          } else {
+            window.open('https://tickk.online/onboarding', '_blank');
+          }
+        });
+      };
+      
+      headerContainer.prepend(badge);
     }
-
-    const widget = createHeaderWidget(authed, (btn) => {
-      chrome.storage.local.get(['tickk_api_key'], (res) => {
-        if (res.tickk_api_key) {
-          window.open('https://tickk.online/dashboard', '_blank');
-        } else {
-          window.open('https://tickk.online/onboarding', '_blank');
-        }
-      });
-    });
-
-    // Style adjustment for #gb integration
-    widget.style.marginRight = '12px';
-    rightActionArea.insertBefore(widget, rightActionArea.firstChild);
   }
+
+  // Run on interval / observer to ensure Gmail SPA doesn't wipe it
+  setInterval(injectHeaderBadge, 2000);
 
   // ─── Inject Tickk Toggle Button in Compose Toolbar ───
   function injectToolbarButton(composeContainer, composeBody) {
