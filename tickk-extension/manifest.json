@@ -37,7 +37,11 @@
       ],
       "js": ["shared.js", "outlook-content-script.js"],
       "css": ["content-style.css"],
-      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://tickk.online/*"],
+      "js": ["tickk-sync.js"],
+      "run_at": "document_idle"
     }
   ],
 
