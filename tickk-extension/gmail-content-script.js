@@ -35,7 +35,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
       // Listen for background token syncs to update header dynamically without reloading
       chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'local' && changes.tickk_api_key) {
+        if (namespace === 'local' && (changes.tickk_user || changes.tickk_api_key)) {
           const oldTrigger = document.querySelector('#tickk-header-trigger');
           if (oldTrigger) oldTrigger.remove();
           injectTopRightHeaderIcon();
@@ -122,9 +122,6 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     // Styling is handled entirely by content-style.css
     trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 22px; height: 22px; display: block;" />`;
     
-    trigger.onmouseenter = () => trigger.style.backgroundColor = 'rgba(255,255,255,0.1)';
-    trigger.onmouseleave = () => trigger.style.backgroundColor = 'transparent';
-
     // Modal Toggle
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -158,20 +155,23 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     modal.id = 'tickk-mini-modal';
     
     // Styling is completely handled by content-style.css to prevent Gmail overrides
-    chrome.storage.local.get(['tickk_api_key', 'tickk_user_email'], (res) => {
-      const email = res.tickk_user_email || 'Logged Out';
-      const isLoggedIn = !!res.tickk_api_key;
+    chrome.storage.local.get(['tickk_user'], (res) => {
+      const user = res.tickk_user;
+      const isLoggedIn = user && user.connected;
+      const email = user ? user.email : 'Logged Out';
       
       modal.innerHTML = `
         <div style="display: flex; align-items: center; margin-bottom: 16px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px;"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px; box-shadow: ${isLoggedIn ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none'};"></span>
           <span style="font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${email}</span>
         </div>
-        <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px;">
-          <p style="margin: 0;">${isLoggedIn ? '🟢 Tracking Active' : '🔴 Connection Required'}</p>
+        <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+          <p style="margin: 0; display: flex; align-items: center; gap: 6px;">
+            ${isLoggedIn ? '✨ Silent Email Tracking Active' : '🔴 Connection Required'}
+          </p>
         </div>
-        <button id="tickk-dash-btn" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: none; background: #10b981; color: #ffffff; font-weight: 600; font-size: 13px; cursor: pointer;">
-          ${isLoggedIn ? 'Open Full Dashboard ↗' : 'Connect Account ⚡'}
+        <button id="tickk-dash-btn">
+          ${isLoggedIn ? 'Open Dashboard ↗' : 'Connect Account ⚡'}
         </button>
       `;
       
