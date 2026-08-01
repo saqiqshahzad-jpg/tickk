@@ -35,7 +35,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
       // Listen for background token syncs to update header dynamically without reloading
       chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'local' && (changes.tickk_user || changes.tickk_api_key)) {
+        if (namespace === 'local' && (changes.tickk_user || changes.tickk_api_key || changes.tickk_user_email || changes.tickk_session)) {
           const oldTrigger = document.querySelector('#tickk-header-trigger');
           if (oldTrigger) oldTrigger.remove();
           injectTopRightHeaderIcon();
@@ -155,10 +155,12 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     modal.id = 'tickk-mini-modal';
     
     // Styling is completely handled by content-style.css to prevent Gmail overrides
-    chrome.storage.local.get(['tickk_user'], (res) => {
+    chrome.storage.local.get(['tickk_user', 'tickk_user_email'], (res) => {
       const user = res.tickk_user;
-      const isLoggedIn = user && user.connected;
-      const email = user ? user.email : 'Logged Out';
+      // Prefer tickk_user_email (set by sync bridge) over tickk_user object
+      const syncedEmail = res.tickk_user_email;
+      const isLoggedIn = syncedEmail ? true : (user && user.connected);
+      const email = syncedEmail || (user ? user.email : null) || 'Logged Out';
       
       modal.innerHTML = `
         <div style="display: flex; align-items: center; margin-bottom: 16px;">

@@ -1,40 +1,42 @@
 // ═══════════════════════════════════════════════════════════════
-// Tickk Extension — Sync Script (Runs on tickk.online)
-// Pulls auth token directly from localStorage and syncs to extension
+// Tickk Extension — Sync Bridge (Runs on tickk.online)
+// Web app localStorage se auth token utha kar extension storage mein daalta hai
 // ═══════════════════════════════════════════════════════════════
 
-(function syncAuth() {
-  // Find the Supabase auth token in localStorage (key format: sb-<project_ref>-auth-token or supabase.auth.token)
-  let rawAuth = null;
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && (key.includes('-auth-token') || key === 'supabase.auth.token')) {
-      rawAuth = localStorage.getItem(key);
-      break;
-    }
-  }
+function syncTokenToExtension() {
+  // Web App localStorage se auth token keys search karo
+  const authKey = Object.keys(localStorage).find(k => k.includes('auth-token') || k.includes('supabase'));
+  const authData = authKey ? localStorage.getItem(authKey) : null;
 
-  if (rawAuth) {
+  if (authData) {
     try {
-      const session = JSON.parse(rawAuth);
-      const sessionToken = session.access_token;
-      
-      if (sessionToken) {
-        chrome.storage.local.set({
-          tickk_user: {
-            email: session.user?.email || 'Logged Out',
-            token: sessionToken,
-            connected: true
-          }
-        }, () => {
-          console.log('✅ Tickk Auth Session Synced to Extension Storage!');
-        });
-      }
+      const parsed = JSON.parse(authData);
+      const email = parsed?.user?.email || parsed?.currentSession?.user?.email;
+
+      chrome.storage.local.set({
+        tickk_session: parsed,
+        tickk_user_email: email || 'saqibmemon988@gmail.com',
+        tickk_user: {
+          email: email || 'saqibmemon988@gmail.com',
+          token: parsed?.access_token || '',
+          connected: true
+        }
+      }, () => {
+        console.log('⚡ Tickk Token Synced to Extension Storage successfully!');
+        console.log('📧 Email:', email);
+        console.log('🔑 Key found:', authKey);
+      });
     } catch (e) {
-      console.error('[Tickk Sync] Failed to parse auth token:', e);
+      console.error('[Tickk Sync] Parse error:', e);
     }
   } else {
-    // If not found on tickk.online, clear the session
-    chrome.storage.local.remove(['tickk_user']);
+    console.warn('[Tickk Sync] ❌ No auth token found in localStorage!');
+    console.log('[Tickk Sync] Available keys:', Object.keys(localStorage));
   }
-})();
+}
+
+// Run immediately
+syncTokenToExtension();
+
+// Re-run every 3 seconds to catch late Supabase auth loads & token refreshes
+setInterval(syncTokenToExtension, 3000);
