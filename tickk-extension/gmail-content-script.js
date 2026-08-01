@@ -1,4 +1,20 @@
 console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
+
+// ═══════════════════════════════════════════════════════════════
+// Auto-capture email from Onboarding redirect URL
+// ═══════════════════════════════════════════════════════════════
+function captureEmailFromUrl() {
+  const hashPart = window.location.hash.split('?')[1];
+  const urlParams = new URLSearchParams(window.location.search || hashPart);
+  const emailFromUrl = urlParams.get('tickk_email');
+  if (emailFromUrl) {
+    chrome.storage.local.set({ tickk_user_email: emailFromUrl }, () => {
+      console.log('⚡ TICKK AUTO-CONNECTED VIA REDIRECT:', emailFromUrl);
+    });
+  }
+}
+captureEmailFromUrl();
+
 // ═══════════════════════════════════════════════════════════════
 // Tickk Extension — Gmail Content Script
 // Injects tracking pixel + action icon into Gmail compose window
