@@ -168,3 +168,77 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     }
   }
 });
+
+// ═══════════════════════════════════════════════════════════════
+// 6. BULLETPROOF TAB WATCHER — Sync auth from tickk.online
+// When user visits tickk.online (logged in), background.js injects
+// a script that reads localStorage and sends back the email.
+// No content script dependency. No timing issues.
+// ═══════════════════════════════════════════════════════════════
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  // Only act when a tickk.online page finishes loading
+  if (
+    changeInfo.status === 'complete' &&
+    tab.url &&
+    tab.url.startsWith('https://tickk.online')
+  ) {
+    console.log('[Tickk BG] tickk.online tab detected, attempting auth sync...');
+    extractAuthFromTab(tabId, 0);
+  }
+});
+
+// Also check when any tab is activated (user switches to tickk.online tab)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab.url && tab.url.startsWith('https://tickk.online')) {
+      console.log('[Tickk BG] Switched to tickk.online tab, syncing...');
+      extractAuthFromTab(activeInfo.tabId, 0);
+    }
+  } catch (e) {}
+});
+
+async function extractAuthFromTab(tabId, attempt) {
+  if (attempt >= 5) {
+    console.warn('[Tickk BG] Auth extraction failed after 5 attempts.');
+    return;
+  }
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // This runs IN the tickk.online page context
+        // It can access the page's localStorage
+        const keys = Object.keys(localStorage).filter(
+          (k) => k.includes('auth-token') || k.includes('sb-')
+        );
+        for (const key of keys) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            const email =
+              data?.user?.email || data?.currentSession?.user?.email;
+            if (email) return email;
+          } catch (e) {}
+        }
+        return null;
+      },
+    });
+
+    const email = results?.[0]?.result;
+
+    if (email) {
+      await chrome.storage.local.set({ tickk_user_email: email });
+      console.log('[Tickk BG] ⚡ AUTH SYNCED FROM TAB:', email);
+    } else {
+      // Auth might not be in localStorage yet — retry after 1 second
+      console.log(
+        `[Tickk BG] No auth found, retrying (${attempt + 1}/5)...`
+      );
+      setTimeout(() => extractAuthFromTab(tabId, attempt + 1), 1000);
+    }
+  } catch (err) {
+    console.error('[Tickk BG] Script injection failed:', err);
+  }
+}
