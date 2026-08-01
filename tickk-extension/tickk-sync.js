@@ -22,6 +22,21 @@ window.addEventListener('message', (event) => {
       // Confirm back to web app that sync is complete
       window.postMessage({ type: 'TICKK_SYNC_CONFIRMED', email: event.data.email }, '*');
     });
+
+    // Also pass the accessToken to the background script to exchange for API Key
+    if (event.data.accessToken) {
+      try {
+        chrome.runtime.sendMessage({
+          type: 'AUTH_TOKEN_FROM_SYNC',
+          accessToken: event.data.accessToken,
+          userId: event.data.userId,
+          email: event.data.email
+        });
+        console.log('⚡ TICKK AUTH_TOKEN_FROM_SYNC sent to background');
+      } catch (e) {
+        console.warn('Could not send AUTH_TOKEN_FROM_SYNC:', e);
+      }
+    }
   }
 });
 
@@ -34,11 +49,24 @@ function autoSyncUserSession() {
     try {
       const data = JSON.parse(localStorage.getItem(key));
       const email = data?.user?.email || data?.currentSession?.user?.email;
+      const accessToken = data?.access_token || data?.session?.access_token || data?.currentSession?.access_token;
+      const userId = data?.user?.id || data?.currentSession?.user?.id;
 
       if (email) {
         chrome.storage.local.set({ tickk_user_email: email }, () => {
           console.log('⚡ Tickk Auto-Sync (polling):', email);
         });
+        
+        if (accessToken) {
+          try {
+            chrome.runtime.sendMessage({
+              type: 'AUTH_TOKEN_FROM_SYNC',
+              accessToken,
+              userId,
+              email
+            });
+          } catch (e) {}
+        }
         return; // Found and synced
       }
     } catch (e) {}

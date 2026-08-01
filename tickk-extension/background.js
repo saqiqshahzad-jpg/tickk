@@ -78,6 +78,27 @@ chrome.runtime.onMessageExternal.addListener(
 
 // ─── 3. Internal Message Handler (from content scripts & popup) ───
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'AUTH_TOKEN_FROM_SYNC' && message.accessToken) {
+    exchangeToken(message.accessToken).then(result => {
+      if (result.success && result.apiKey) {
+        const storageData = {
+          tickk_api_key: result.apiKey,
+          tickk_auth_timestamp: Date.now(),
+        };
+        if (result.userId || message.userId) storageData.tickk_user_id = result.userId || message.userId;
+        if (message.email) storageData.tickk_user_email = message.email;
+
+        chrome.storage.local.set(storageData, () => {
+          console.log('[Tickk BG] Auth synced successfully via content script bridge.');
+        });
+      } else {
+        console.error('[Tickk BG] Token exchange failed via sync bridge:', result.error);
+      }
+    });
+    // Fire and forget, no sendResponse needed for this
+    return false;
+  }
+
   if (message.type === 'GET_AUTH_STATUS') {
     chrome.storage.local.get(
       ['tickk_api_key', 'tickk_user_id'],
@@ -219,18 +240,32 @@ async function extractAuthFromTab(tabId, attempt) {
             const data = JSON.parse(localStorage.getItem(key));
             const email =
               data?.user?.email || data?.currentSession?.user?.email;
-            if (email) return email;
+            const accessToken = data?.access_token || data?.session?.access_token || data?.currentSession?.access_token;
+            if (email) return { email, accessToken };
           } catch (e) {}
         }
         return null;
       },
     });
 
-    const email = results?.[0]?.result;
+    const result = results?.[0]?.result;
 
-    if (email) {
-      await chrome.storage.local.set({ tickk_user_email: email });
-      console.log('[Tickk BG] ⚡ AUTH SYNCED FROM TAB:', email);
+    if (result && result.email) {
+      await chrome.storage.local.set({ tickk_user_email: result.email });
+      console.log('[Tickk BG] ⚡ AUTH SYNCED FROM TAB (email):', result.email);
+      
+      if (result.accessToken) {
+        const exResult = await exchangeToken(result.accessToken);
+        if (exResult.success && exResult.apiKey) {
+          const storageData = {
+            tickk_api_key: exResult.apiKey,
+            tickk_auth_timestamp: Date.now(),
+          };
+          if (exResult.userId) storageData.tickk_user_id = exResult.userId;
+          await chrome.storage.local.set(storageData);
+          console.log('[Tickk BG] ⚡ API KEY SYNCED FROM TAB');
+        }
+      }
     } else {
       // Auth might not be in localStorage yet — retry after 1 second
       console.log(
