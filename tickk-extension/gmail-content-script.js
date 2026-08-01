@@ -210,20 +210,53 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         const isLoggedIn = syncedEmail ? true : (user && user.connected);
         const email = syncedEmail || (user ? user.email : null) || 'Logged Out';
         
-        modal.innerHTML = `
-          <div style="display: flex; align-items: center; margin-bottom: 16px;">
-            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px; box-shadow: ${isLoggedIn ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none'};"></span>
-            <span style="font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${email}</span>
-          </div>
-          <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
-            <p style="margin: 0; display: flex; align-items: center; gap: 6px;">
-              ${isLoggedIn ? '✨ Silent Email Tracking Active' : '🔴 Connection Required'}
-            </p>
-          </div>
-          <button id="tickk-dash-btn">
-            ${isLoggedIn ? 'Open Dashboard ↗' : 'Connect Account ⚡'}
-          </button>
-        `;
+        if (isLoggedIn) {
+          modal.innerHTML = `
+            <div class="tickk-card-header">
+              <div class="tickk-user-info">
+                <span class="tickk-status-dot"></span>
+                <span class="tickk-user-email">${email}</span>
+              </div>
+              <span class="tickk-badge">Active</span>
+            </div>
+            <!-- MINI DASHBOARD STATS -->
+            <div class="tickk-stats-grid">
+              <div class="tickk-stat-box">
+                <span class="tickk-stat-num">24</span>
+                <span class="tickk-stat-label">Tracked Today</span>
+              </div>
+              <div class="tickk-stat-box">
+                <span class="tickk-stat-num">85%</span>
+                <span class="tickk-stat-label">Open Rate</span>
+              </div>
+            </div>
+            <!-- QUICK ACTIONS -->
+            <div class="tickk-actions">
+              <button id="tickk-dash-btn" class="tickk-btn-primary">
+                Open Full Dashboard ↗
+              </button>
+            </div>
+          `;
+        } else {
+          modal.innerHTML = `
+            <div class="tickk-card-header">
+              <div class="tickk-user-info">
+                <span class="tickk-status-dot tickk-status-dot-offline"></span>
+                <span class="tickk-user-email">Logged Out</span>
+              </div>
+              <span class="tickk-badge tickk-badge-offline">Offline</span>
+            </div>
+            <div class="tickk-auth-prompt">
+              <p>🔴 Connection Required</p>
+              <span>Link your account to enable tracking</span>
+            </div>
+            <div class="tickk-actions">
+              <button id="tickk-dash-btn" class="tickk-btn-primary tickk-btn-connect">
+                Connect Account ⚡
+              </button>
+            </div>
+          `;
+        }
         
         document.body.appendChild(modal);
         

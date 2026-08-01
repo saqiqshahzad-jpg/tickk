@@ -560,25 +560,160 @@
   position: fixed !important;
   top: 55px !important;
   right: 180px !important;
-  width: 240px !important;
-  background-color: #09090b !important;
-  border: 1px solid #27272a !important;
+  background: #09090b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
-  padding: 14px !important;
+  padding: 16px !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  font-family: 'Inter', sans-serif !important;
+  color: #ffffff !important;
+  width: 280px !important;
   z-index: 10000 !important;
-  color: #e4e4e7 !important;
-  font-family: sans-serif !important;
 }
 
-#tickk-dash-btn {
-  width: 100% !important;
-  margin-top: 10px !important;
-  background-color: #10b981 !important;
-  color: #000000 !important;
+.tickk-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 20px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  padding-bottom: 12px !important;
+}
+
+.tickk-user-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.tickk-user-email {
   font-weight: 600 !important;
+  font-size: 14px !important;
+  text-overflow: ellipsis !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  max-width: 160px !important;
+}
+
+.tickk-badge {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  padding: 4px 8px !important;
+  border-radius: 99px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.tickk-badge-offline {
+  background: rgba(113, 113, 122, 0.15) !important;
+  color: #a1a1aa !important;
+  border-color: rgba(113, 113, 122, 0.3) !important;
+}
+
+.tickk-status-dot-offline {
+  background-color: #52525b !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.tickk-stats-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
+  margin-bottom: 20px !important;
+}
+
+.tickk-stat-box {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.tickk-stat-box:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.tickk-stat-num {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin-bottom: 4px !important;
+}
+
+.tickk-stat-label {
+  font-size: 11px !important;
+  color: #a1a1aa !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.tickk-auth-prompt {
+  background: rgba(239, 68, 68, 0.05) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  text-align: center !important;
+  margin-bottom: 20px !important;
+}
+
+.tickk-auth-prompt p {
+  margin: 0 0 4px 0 !important;
+  color: #f87171 !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.tickk-auth-prompt span {
+  font-size: 12px !important;
+  color: #a1a1aa !important;
+}
+
+.tickk-actions {
+  display: flex !important;
+}
+
+.tickk-btn-primary {
+  width: 100% !important;
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
   border: none !important;
-  border-radius: 6px !important;
-  padding: 8px 0 !important;
+  border-radius: 8px !important;
+  padding: 12px 0 !important;
   cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.tickk-btn-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3) !important;
+}
+
+.tickk-btn-primary:active {
+  transform: translateY(1px) !important;
+}
+
+.tickk-btn-connect {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+}
+
+.tickk-btn-connect:hover {
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3) !important;
 }
