@@ -212,47 +212,57 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         
         if (isLoggedIn) {
           modal.innerHTML = `
-            <div class="tickk-card-header">
-              <div class="tickk-user-info">
-                <span class="tickk-status-dot"></span>
-                <span class="tickk-user-email">${email}</span>
+            <div class="tickk-mini-popup">
+              <!-- HEADER SECTION -->
+              <div class="tickk-header">
+                <div class="tickk-brand">
+                  <span class="tickk-logo-dot">t</span>
+                  <span class="tickk-email">${email}</span>
+                </div>
+                <div class="tickk-status-badge">
+                  <span class="tickk-pulse"></span>
+                  <span>ACTIVE</span>
+                </div>
               </div>
-              <span class="tickk-badge">Active</span>
-            </div>
-            <!-- MINI DASHBOARD STATS -->
-            <div class="tickk-stats-grid">
-              <div class="tickk-stat-box">
-                <span class="tickk-stat-num">24</span>
-                <span class="tickk-stat-label">Tracked Today</span>
+              <!-- STATS DASHBOARD GRID -->
+              <div class="tickk-stats-container">
+                <div class="tickk-stat-card">
+                  <div class="tickk-stat-value">24</div>
+                  <div class=\"tickk-stat-title\">TRACKED TODAY</div>
+                </div>
+                <div class="tickk-stat-card">
+                  <div class="tickk-stat-value">85<span class="tickk-unit">%</span></div>
+                  <div class="tickk-stat-title">OPEN RATE</div>
+                </div>
               </div>
-              <div class="tickk-stat-box">
-                <span class="tickk-stat-num">85%</span>
-                <span class="tickk-stat-label">Open Rate</span>
-              </div>
-            </div>
-            <!-- QUICK ACTIONS -->
-            <div class="tickk-actions">
-              <button id="tickk-dash-btn" class="tickk-btn-primary">
-                Open Full Dashboard ↗
+              <!-- PRIMARY CTA BUTTON -->
+              <button id="tickk-dash-btn" class="tickk-main-btn">
+                <span>Open Full Dashboard</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
               </button>
             </div>
           `;
         } else {
           modal.innerHTML = `
-            <div class="tickk-card-header">
-              <div class="tickk-user-info">
-                <span class="tickk-status-dot tickk-status-dot-offline"></span>
-                <span class="tickk-user-email">Logged Out</span>
+            <div class="tickk-mini-popup">
+              <!-- HEADER SECTION -->
+              <div class="tickk-header">
+                <div class="tickk-brand">
+                  <span class="tickk-logo-dot" style="background: #52525b !important;">t</span>
+                  <span class="tickk-email">Logged Out</span>
+                </div>
+                <div class="tickk-status-badge tickk-status-badge-offline">
+                  <span class="tickk-pulse tickk-pulse-offline"></span>
+                  <span>OFFLINE</span>
+                </div>
               </div>
-              <span class="tickk-badge tickk-badge-offline">Offline</span>
-            </div>
-            <div class="tickk-auth-prompt">
-              <p>🔴 Connection Required</p>
-              <span>Link your account to enable tracking</span>
-            </div>
-            <div class="tickk-actions">
-              <button id="tickk-dash-btn" class="tickk-btn-primary tickk-btn-connect">
-                Connect Account ⚡
+              <div class="tickk-auth-prompt">
+                <p>🔴 Connection Required</p>
+                <span>Link your account to enable tracking</span>
+              </div>
+              <!-- PRIMARY CTA BUTTON -->
+              <button id="tickk-dash-btn" class="tickk-main-btn tickk-main-btn-connect">
+                <span>Connect Account ⚡</span>
               </button>
             </div>
           `;
