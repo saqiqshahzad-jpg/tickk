@@ -59,7 +59,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
           injectTopRightHeaderIcon();
           
           // Re-render modal if open
-          const modal = document.querySelector('#tickk-mini-modal');
+          const modal = document.querySelector('#tickk-mini-popup');
           if (modal && modal.style.display !== 'none') {
              modal.remove();
              toggleMiniDashboard(document.querySelector('#tickk-header-trigger'));
@@ -169,7 +169,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   }
 
   function toggleMiniDashboard(trigger) {
-    let modal = document.querySelector('#tickk-mini-modal');
+    let modal = document.querySelector('#tickk-mini-popup');
     if (modal) {
       modal.style.display = modal.style.display === 'none' ? 'block' : 'none';
       return;
@@ -177,7 +177,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     
     // Build Modal Container
     modal = document.createElement('div');
-    modal.id = 'tickk-mini-modal';
+    modal.id = 'tickk-mini-popup';
     
     // Styling is completely handled by content-style.css to prevent Gmail overrides
     if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
@@ -195,24 +195,8 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       const closeHandler = (e) => {
         if (!modal.contains(e.target) && !trigger.contains(e.target)) {
           modal.style.display = 'none';
-          document.removeEventListener('click', closeHandler);
-        }
-      };
-      setTimeout(() => document.addEventListener('click', closeHandler), 0);
-      return;
-    }
-
-    try {
-      chrome.storage.local.get(['tickk_user', 'tickk_user_email'], (res) => {
-        const user = res.tickk_user;
-        // Prefer tickk_user_email (set by sync bridge) over tickk_user object
-        const syncedEmail = res.tickk_user_email;
-        const isLoggedIn = syncedEmail ? true : (user && user.connected);
-        const email = syncedEmail || (user ? user.email : null) || 'Logged Out';
-        
-        if (isLoggedIn) {
+          document.removeEventListener(        if (isLoggedIn) {
           modal.innerHTML = `
-            <div class="tickk-mini-popup">
               <!-- HEADER SECTION -->
               <div class="tickk-header">
                 <div class="tickk-brand">
@@ -226,25 +210,23 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
               </div>
               <!-- STATS DASHBOARD GRID -->
               <div class="tickk-stats-container">
-                <div class="tickk-stat-card">
-                  <div class="tickk-stat-value">24</div>
-                  <div class=\"tickk-stat-title\">TRACKED TODAY</div>
+                <div class="tickk-stat-box">
+                  <div class="tickk-stat-number">24</div>
+                  <div class="tickk-stat-label">TRACKED TODAY</div>
                 </div>
-                <div class="tickk-stat-card">
-                  <div class="tickk-stat-value">85<span class="tickk-unit">%</span></div>
-                  <div class="tickk-stat-title">OPEN RATE</div>
+                <div class="tickk-stat-box">
+                  <div class="tickk-stat-number">85<span class="tickk-unit">%</span></div>
+                  <div class="tickk-stat-label">OPEN RATE</div>
                 </div>
               </div>
               <!-- PRIMARY CTA BUTTON -->
-              <button id="tickk-dash-btn" class="tickk-main-btn">
+              <button id="tickk-dash-btn" class="tickk-primary-btn">
                 <span>Open Full Dashboard</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
               </button>
-            </div>
           `;
         } else {
           modal.innerHTML = `
-            <div class="tickk-mini-popup">
               <!-- HEADER SECTION -->
               <div class="tickk-header">
                 <div class="tickk-brand">
@@ -253,6 +235,19 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
                 </div>
                 <div class="tickk-status-badge tickk-status-badge-offline">
                   <span class="tickk-pulse tickk-pulse-offline"></span>
+                  <span>OFFLINE</span>
+                </div>
+              </div>
+              <div class="tickk-auth-prompt">
+                <p>🔴 Connection Required</p>
+                <span>Link your account to enable tracking</span>
+              </div>
+              <!-- PRIMARY CTA BUTTON -->
+              <button id="tickk-dash-btn" class="tickk-primary-btn tickk-primary-btn-connect">
+                <span>Connect Account ⚡</span>
+              </button>
+          `;
+        } <span class="tickk-pulse tickk-pulse-offline"></span>
                   <span>OFFLINE</span>
                 </div>
               </div>

@@ -564,22 +564,21 @@
   border-color: #10b981 !important;
 }
 
-/* Floating Mini-Dashboard Card */
-#tickk-mini-modal {
+/* Main Box Container */
+#tickk-mini-popup {
+  all: initial !important; /* Reset Gmail styles */
   position: fixed !important;
   top: 55px !important;
   right: 180px !important;
   z-index: 10000 !important;
-}
-
-.tickk-mini-popup {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-  background: var(--tickk-bg) !important;
-  border: 1px solid var(--tickk-border) !important;
+  background: #09090b !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 16px !important;
   padding: 16px !important;
-  width: 300px !important;
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7) !important;
+  width: 290px !important;
+  box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.8) !important;
+  display: block !important;
   box-sizing: border-box !important;
 }
 /* Header Styling */
@@ -663,20 +662,19 @@
   margin-bottom: 14px !important;
 }
 
-.tickk-stat-card {
-  background: var(--tickk-card-bg) !important;
-  border: 1px solid var(--tickk-border) !important;
+.tickk-stat-box {
+  background: #121215 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
   border-radius: 12px !important;
-  padding: 12px 10px !important;
+  padding: 12px 8px !important;
   text-align: center !important;
 }
 
-.tickk-stat-value {
-  color: var(--tickk-text-main) !important;
-  font-size: 22px !important;
+.tickk-stat-number {
+  color: #ffffff !important;
+  font-size: 20px !important;
   font-weight: 700 !important;
   letter-spacing: -0.5px !important;
-  line-height: 1.2 !important;
 }
 
 .tickk-unit {
@@ -685,26 +683,28 @@
   margin-left: 2px !important;
 }
 
-.tickk-stat-title {
-  color: var(--tickk-text-muted) !important;
-  font-size: 9px !important;
+.tickk-stat-label {
+  color: #71717a !important;
+  font-size: 10px !important;
   font-weight: 600 !important;
   letter-spacing: 0.5px !important;
-  margin-top: 4px !important;
+  margin-top: 2px !important;
 }
 
 /* Main CTA Button */
-.tickk-main-btn {
-  background: var(--tickk-emerald) !important;
+.tickk-primary-btn {
+  background: #10b981 !important;
   color: #000000 !important;
   font-weight: 600 !important;
   font-size: 13px !important;
-  padding: 10px 14px !important;
   border-radius: 10px !important;
+  padding: 10px !important;
+  text-align: center !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 6px !important;
+  margin-top: 12px !important;
   text-decoration: none !important;
   transition: all 0.2s ease !important;
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2) !important;
@@ -714,18 +714,18 @@
   cursor: pointer !important;
 }
 
-.tickk-main-btn:hover {
+.tickk-primary-btn:hover {
   background: #059669 !important;
   transform: translateY(-1px) !important;
 }
 
-.tickk-main-btn-connect {
+.tickk-primary-btn-connect {
   background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
   color: #fff !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
 }
 
-.tickk-main-btn-connect:hover {
+.tickk-primary-btn-connect:hover {
   box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3) !important;
 }
 
