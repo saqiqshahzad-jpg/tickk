@@ -3,13 +3,14 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 // ═══════════════════════════════════════════════════════════════
 // Auto-capture email from Onboarding redirect URL
 // ═══════════════════════════════════════════════════════════════
-(function autoSyncFromUrl() {
+(function captureTickkAuth() {
   const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
   const emailFromUrl = urlParams.get('tickk_email');
   if (emailFromUrl) {
+    // Save user email to extension storage
     chrome.storage.local.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }, () => {
-      console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
-      // URL clean karo taake parameter gayab ho jaye
+      console.log('⚡ Tickk Auth Caught From Redirect URL:', emailFromUrl);
+      // URL clean karo taake address bar saaf ho jaye
       window.history.replaceState({}, document.title, window.location.pathname);
       location.reload();
     });
