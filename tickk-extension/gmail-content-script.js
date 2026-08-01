@@ -138,7 +138,14 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     const trigger = document.createElement('div');
     trigger.id = 'tickk-header-trigger';
     // Styling is handled entirely by content-style.css
-    trigger.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon48.png')}" style="width: 22px; height: 22px; display: block;" />`;
+    // Safe image URL getter
+    const iconUrl = (typeof chrome !== 'undefined' && chrome.runtime?.getURL) 
+      ? chrome.runtime.getURL('icons/icon48.png') 
+      : '';
+    
+    if (iconUrl) {
+      trigger.innerHTML = `<img src="${iconUrl}" style="width: 22px; height: 22px; display: block;" />`;
+    }
     
     // Modal Toggle
     trigger.addEventListener('click', (e) => {
