@@ -1,42 +1,27 @@
 // ═══════════════════════════════════════════════════════════════
-// Tickk Extension — Sync Bridge (Runs on tickk.online)
-// Web app localStorage se auth token utha kar extension storage mein daalta hai
+// Tickk Extension — Permanent Auto-Sync (Runs on tickk.online)
+// Automatically reads logged-in user email from Supabase localStorage
+// and writes it to chrome.storage.local for the extension
 // ═══════════════════════════════════════════════════════════════
 
-function syncTokenToExtension() {
-  // Web App localStorage se auth token keys search karo
-  const authKey = Object.keys(localStorage).find(k => k.includes('auth-token') || k.includes('supabase'));
-  const authData = authKey ? localStorage.getItem(authKey) : null;
+function autoSyncUserSession() {
+  // LocalStorage se Supabase Auth User read karo
+  const authKeys = Object.keys(localStorage).filter(k => k.includes('auth-token') || k.includes('sb-'));
 
-  if (authData) {
+  for (let key of authKeys) {
     try {
-      const parsed = JSON.parse(authData);
-      const email = parsed?.user?.email || parsed?.currentSession?.user?.email;
+      const data = JSON.parse(localStorage.getItem(key));
+      const email = data?.user?.email || data?.currentSession?.user?.email;
 
-      chrome.storage.local.set({
-        tickk_session: parsed,
-        tickk_user_email: email || 'saqibmemon988@gmail.com',
-        tickk_user: {
-          email: email || 'saqibmemon988@gmail.com',
-          token: parsed?.access_token || '',
-          connected: true
-        }
-      }, () => {
-        console.log('⚡ Tickk Token Synced to Extension Storage successfully!');
-        console.log('📧 Email:', email);
-        console.log('🔑 Key found:', authKey);
-      });
-    } catch (e) {
-      console.error('[Tickk Sync] Parse error:', e);
-    }
-  } else {
-    console.warn('[Tickk Sync] ❌ No auth token found in localStorage!');
-    console.log('[Tickk Sync] Available keys:', Object.keys(localStorage));
+      if (email) {
+        chrome.storage.local.set({ tickk_user_email: email }, () => {
+          console.log('⚡ Tickk Permanent Auto-Sync Success:', email);
+        });
+        break;
+      }
+    } catch (e) {}
   }
 }
 
-// Run immediately
-syncTokenToExtension();
-
-// Re-run every 3 seconds to catch late Supabase auth loads & token refreshes
-setInterval(syncTokenToExtension, 3000);
+autoSyncUserSession();
+setInterval(autoSyncUserSession, 3000);
