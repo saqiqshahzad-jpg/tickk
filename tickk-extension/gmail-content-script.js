@@ -3,17 +3,18 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 // ═══════════════════════════════════════════════════════════════
 // Auto-capture email from Onboarding redirect URL
 // ═══════════════════════════════════════════════════════════════
-function captureEmailFromUrl() {
-  const hashPart = window.location.hash.split('?')[1];
-  const urlParams = new URLSearchParams(window.location.search || hashPart);
+(function autoSyncFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
   const emailFromUrl = urlParams.get('tickk_email');
   if (emailFromUrl) {
-    chrome.storage.local.set({ tickk_user_email: emailFromUrl }, () => {
-      console.log('⚡ TICKK AUTO-CONNECTED VIA REDIRECT:', emailFromUrl);
+    chrome.storage.local.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }, () => {
+      console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
+      // URL clean karo taake parameter gayab ho jaye
+      window.history.replaceState({}, document.title, window.location.pathname);
+      location.reload();
     });
   }
-}
-captureEmailFromUrl();
+})();
 
 // ═══════════════════════════════════════════════════════════════
 // Tickk Extension — Gmail Content Script

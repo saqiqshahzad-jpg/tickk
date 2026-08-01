@@ -3,6 +3,19 @@
 // Injects tracking pixel + action icon into Outlook compose pane
 // ═══════════════════════════════════════════════════════════════
 
+(function autoSyncFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
+  const emailFromUrl = urlParams.get('tickk_email');
+  if (emailFromUrl) {
+    chrome.storage.local.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }, () => {
+      console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
+      // URL clean karo taake parameter gayab ho jaye
+      window.history.replaceState({}, document.title, window.location.pathname);
+      location.reload();
+    });
+  }
+})();
+
 (function () {
   'use strict';
 

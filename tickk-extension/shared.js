@@ -11,12 +11,12 @@ const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
  */
 async function getStoredAuth() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['tickk_user', 'tickk_opens_count'], (result) => {
+    chrome.storage.local.get(['tickk_user', 'tickk_opens_count', 'tickk_api_key', 'tickk_user_email'], (result) => {
       const user = result.tickk_user;
       resolve({
-        apiKey: user ? user.token : null,
+        apiKey: result.tickk_api_key || (user ? user.token : null),
         userId: user ? user.email : null,
-        email: user ? user.email : 'Not Connected',
+        email: result.tickk_user_email || (user ? user.email : 'Not Connected'),
         opensCount: result.tickk_opens_count || 0
       });
     });
