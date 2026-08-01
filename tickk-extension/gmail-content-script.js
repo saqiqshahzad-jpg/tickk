@@ -180,36 +180,17 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     modal.id = 'tickk-mini-modal';
     
     // Styling is completely handled by content-style.css to prevent Gmail overrides
-    chrome.storage.local.get(['tickk_user', 'tickk_user_email'], (res) => {
-      const user = res.tickk_user;
-      // Prefer tickk_user_email (set by sync bridge) over tickk_user object
-      const syncedEmail = res.tickk_user_email;
-      const isLoggedIn = syncedEmail ? true : (user && user.connected);
-      const email = syncedEmail || (user ? user.email : null) || 'Logged Out';
-      
+    if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+      console.warn("Tickk Extension: Context invalidated. Please reload the page.");
       modal.innerHTML = `
-        <div style="display: flex; align-items: center; margin-bottom: 16px;">
-          <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px; box-shadow: ${isLoggedIn ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none'};"></span>
-          <span style="font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${email}</span>
+        <div style="padding: 16px; text-align: center; background: #18181b; border: 1px solid #3f3f46; border-radius: 12px; font-family: 'Inter', sans-serif;">
+          <p style="margin: 0 0 8px 0; color: #ef4444; font-weight: 600;">Update Required</p>
+          <p style="margin: 0 0 16px 0; font-size: 13px; color: #a1a1aa;">Tickk Extension was updated in the background. Please reload the page to continue.</p>
+          <button onclick="window.location.reload()" style="background: #10b981; color: #ffffff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%;">Reload Gmail</button>
         </div>
-        <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
-          <p style="margin: 0; display: flex; align-items: center; gap: 6px;">
-            ${isLoggedIn ? '✨ Silent Email Tracking Active' : '🔴 Connection Required'}
-          </p>
-        </div>
-        <button id="tickk-dash-btn">
-          ${isLoggedIn ? 'Open Dashboard ↗' : 'Connect Account ⚡'}
-        </button>
       `;
-      
       document.body.appendChild(modal);
       
-      document.getElementById('tickk-dash-btn').onclick = () => {
-        const targetUrl = isLoggedIn ? 'https://tickk.online/dashboard' : 'https://tickk.online/onboarding';
-        window.open(targetUrl, '_blank');
-        modal.style.display = 'none';
-      };
-
       // Close modal when clicking outside
       const closeHandler = (e) => {
         if (!modal.contains(e.target) && !trigger.contains(e.target)) {
@@ -218,7 +199,52 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         }
       };
       setTimeout(() => document.addEventListener('click', closeHandler), 0);
-    });
+      return;
+    }
+
+    try {
+      chrome.storage.local.get(['tickk_user', 'tickk_user_email'], (res) => {
+        const user = res.tickk_user;
+        // Prefer tickk_user_email (set by sync bridge) over tickk_user object
+        const syncedEmail = res.tickk_user_email;
+        const isLoggedIn = syncedEmail ? true : (user && user.connected);
+        const email = syncedEmail || (user ? user.email : null) || 'Logged Out';
+        
+        modal.innerHTML = `
+          <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: ${isLoggedIn ? '#10b981' : '#52525b'}; margin-right: 8px; box-shadow: ${isLoggedIn ? '0 0 6px rgba(16, 185, 129, 0.5)' : 'none'};"></span>
+            <span style="font-weight: 600; font-size: 14px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${email}</span>
+          </div>
+          <div style="font-size: 13px; color: #a1a1aa; margin-bottom: 16px; background: rgba(255, 255, 255, 0.03); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <p style="margin: 0; display: flex; align-items: center; gap: 6px;">
+              ${isLoggedIn ? '✨ Silent Email Tracking Active' : '🔴 Connection Required'}
+            </p>
+          </div>
+          <button id="tickk-dash-btn">
+            ${isLoggedIn ? 'Open Dashboard ↗' : 'Connect Account ⚡'}
+          </button>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        document.getElementById('tickk-dash-btn').onclick = () => {
+          const targetUrl = isLoggedIn ? 'https://tickk.online/dashboard' : 'https://tickk.online/onboarding';
+          window.open(targetUrl, '_blank');
+          modal.style.display = 'none';
+        };
+
+        // Close modal when clicking outside
+        const closeHandler = (e) => {
+          if (!modal.contains(e.target) && !trigger.contains(e.target)) {
+            modal.style.display = 'none';
+            document.removeEventListener('click', closeHandler);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', closeHandler), 0);
+      });
+    } catch (err) {
+      console.warn("Tickk Extension: Storage access failed.", err);
+    }
   }
 
   // Run on interval / observer to ensure Gmail SPA doesn't wipe it
