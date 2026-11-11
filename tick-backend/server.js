@@ -362,7 +362,7 @@ app.post('/api/track/dispatch', requireUserAuth, async (req, res) => {
         }
 
         // Normal dispatch pipeline: generate tracking parameters link/pixel injection
-        const origin = req.headers.origin || 'https://tickk.io';
+        const origin = req.headers.origin || `${req.protocol}://${req.get('host')}` || 'https://tickk-k5zw.onrender.com';
         const pixelUrl = `${origin}/api/track/${data.id}/pixel.png`;
         const trackedLink = data.link_url ? `${origin}/api/track/${data.id}/click?url=${encodeURIComponent(data.link_url)}` : null;
 
