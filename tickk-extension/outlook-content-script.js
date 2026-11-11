@@ -11,7 +11,7 @@
       console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
       // URL clean karo taake parameter gayab ho jaye
       window.history.replaceState({}, document.title, window.location.pathname);
-      location.reload();
+      // location.reload();
     });
   }
 })();

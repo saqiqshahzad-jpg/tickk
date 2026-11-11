@@ -12,7 +12,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       console.log('⚡ Tickk Auth Caught From Redirect URL:', emailFromUrl);
       // URL clean karo taake address bar saaf ho jaye
       window.history.replaceState({}, document.title, window.location.pathname);
-      location.reload();
+      // location.reload();
     });
   }
 })();
