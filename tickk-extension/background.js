@@ -3,7 +3,7 @@
 // Handles: onInstall onboarding, token exchange, message relay
 // ═══════════════════════════════════════════════════════════════
 
-const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
+const TICKK_API_BASE = 'https://tickk-k5zw.onrender.com';
 const ONBOARDING_URL = 'https://tickk.online/onboarding';
 
 // ─── 1. On Install: Open Onboarding Page ───

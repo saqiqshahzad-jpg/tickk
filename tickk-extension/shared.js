@@ -3,7 +3,7 @@
 // Common API calls & helpers used by both content scripts
 // ═══════════════════════════════════════════════════════════════
 
-const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
+const TICKK_API_BASE = 'https://tickk-k5zw.onrender.com';
 
 /**
  * Retrieve stored auth credentials from chrome.storage.local

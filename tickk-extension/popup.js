@@ -3,7 +3,7 @@
 // Handles: auth state, credits display, recent emails, settings
 // ═══════════════════════════════════════════════════════════════
 
-const TICKK_API_BASE = 'https://tickk-backend.onrender.com';
+const TICKK_API_BASE = 'https://tickk-k5zw.onrender.com';
 const TICKK_DASHBOARD_URL = 'https://tickk.online/dashboard';
 const TICKK_LOGIN_URL = 'https://tickk.online/onboarding';
 
