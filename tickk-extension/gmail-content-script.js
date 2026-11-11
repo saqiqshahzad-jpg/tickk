@@ -376,10 +376,13 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
       'click',
       async (e) => {
         const sendBtn = e.target.closest(SEND_BUTTON_SELECTOR);
+        console.log("🔥 [Tickk] SEND BUTTON DETECTED:", sendBtn);
+
         if (!sendBtn) return;
 
         // Check if tracking is enabled for this compose
         const trackingState = composeBody.getAttribute('data-tickk-tracking');
+        console.log("🔥 [Tickk] TRACKING STATE:", trackingState); // Yeh bhi confirm karega ke toggle ON hai ya nahi
         if (trackingState === 'disabled') {
           console.log(
             '[Tickk Gmail] Tracking disabled for this compose — skipping.'
@@ -387,9 +390,12 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
           return; // Let send proceed normally
         }
 
-        // Check if pixel already injected (prevent duplicates)
-        if (composeBody.querySelector('[data-tickk-pixel]')) {
-          console.log('[Tickk Gmail] Pixel already injected — skipping.');
+        // Check if already processing send or pixel already injected (prevent duplicate / loop)
+        if (
+          composeBody.getAttribute('data-tickk-sending') === 'true' ||
+          composeBody.querySelector('[data-tickk-pixel]')
+        ) {
+          console.log('[Tickk Gmail] Pixel injected or send in progress — letting send proceed.');
           return;
         }
 
@@ -407,6 +413,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         // Prevent immediate send — we need to inject pixel first
         e.preventDefault();
         e.stopPropagation();
+        composeBody.setAttribute('data-tickk-sending', 'true');
 
         try {
           // Create tracker via API
