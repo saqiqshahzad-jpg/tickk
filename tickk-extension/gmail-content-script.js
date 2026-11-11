@@ -26,7 +26,7 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
   'use strict';
 
   const COMPOSE_BODY_SELECTOR = 'div[aria-label="Message Body"]';
-  const SEND_BUTTON_SELECTOR = 'div[aria-label="Send"]';
+  const SEND_BUTTON_SELECTOR = 'div[aria-label*="Send"], [data-tooltip*="Send"], .aoO, .T-I-atl';
   const COMPOSE_TOOLBAR_SELECTOR = 'div[role="dialog"] .gU.Up, .btC';
   const TO_FIELD_SELECTOR = 'input[aria-label="To recipients"]';
   const SUBJECT_FIELD_SELECTOR = 'input[name="subjectbox"]';
@@ -369,81 +369,81 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     }
   }
 
-  // ─── Intercept Send Button Click ───
+  // ─── Intercept Send Button Click (The Ultimate Fallback) ───
   function interceptSend(composeContainer, composeBody) {
-    // Use event delegation on the compose container
     composeContainer.addEventListener(
       'click',
       async (e) => {
-        const sendBtn = e.target.closest(SEND_BUTTON_SELECTOR);
-        console.log("🔥 [Tickk] SEND BUTTON DETECTED:", sendBtn);
+        let isSendButton = false;
+        let clickedElement = e.target;
+        
+        // Method 1: Check by role and text content (The most reliable for modern Gmail)
+        const roleButton = clickedElement.closest('[role="button"]');
+        if (roleButton) {
+          const text = roleButton.innerText || roleButton.textContent || "";
+          // Checks if the button says "Send" (case-insensitive)
+          if (text.trim().toLowerCase() === "send") {
+            isSendButton = true;
+            clickedElement = roleButton; // Treat the role container as the main button
+          }
+        }
 
-        if (!sendBtn) return;
+        // Method 2: Fallback to the classic selector just in case
+        if (!isSendButton) {
+          const classicSend = clickedElement.closest('.T-I.J-J5-Ji.aoO.v7.T-I-atl.L3, div[data-tooltip^="Send"], div[aria-label^="Send"]');
+          if (classicSend) {
+             isSendButton = true;
+             clickedElement = classicSend;
+          }
+        }
 
-        // Check if tracking is enabled for this compose
+        console.log("🔥 [Tickk] SEND BUTTON DETECTED:", isSendButton ? clickedElement : "null");
+        
+        // If it's still not the send button, let normal click happen
+        if (!isSendButton) return;
+
+        // Prevent infinite loops when programmatically clicked or if pixel already injected
+        if (clickedElement.classList.contains('tickk-auto-sending') || composeBody.querySelector('[data-tickk-pixel]')) {
+          return;
+        }
+
         const trackingState = composeBody.getAttribute('data-tickk-tracking');
-        console.log("🔥 [Tickk] TRACKING STATE:", trackingState); // Yeh bhi confirm karega ke toggle ON hai ya nahi
-        if (trackingState === 'disabled') {
-          console.log(
-            '[Tickk Gmail] Tracking disabled for this compose — skipping.'
-          );
-          return; // Let send proceed normally
-        }
+        console.log("🔥 [Tickk] TRACKING STATE:", trackingState);
+        
+        if (trackingState === 'disabled') return;
 
-        // Check if already processing send or pixel already injected (prevent duplicate / loop)
-        if (
-          composeBody.getAttribute('data-tickk-sending') === 'true' ||
-          composeBody.querySelector('[data-tickk-pixel]')
-        ) {
-          console.log('[Tickk Gmail] Pixel injected or send in progress — letting send proceed.');
-          return;
-        }
-
-        // Extract email metadata
-        const recipient = extractRecipient(composeContainer);
-        const subject = extractSubject(composeContainer);
-
-        if (!recipient || !subject) {
-          console.warn(
-            '[Tickk Gmail] Could not extract recipient/subject — skipping tracking.'
-          );
-          return;
-        }
-
-        // Prevent immediate send — we need to inject pixel first
         e.preventDefault();
         e.stopPropagation();
-        composeBody.setAttribute('data-tickk-sending', 'true');
 
         try {
-          // Create tracker via API
+          const recipientInput = composeContainer.querySelector('input[name="to"], [name="to"] input, input[peoplekit-id]');
+          const subjectInput = composeContainer.querySelector('input[name="subjectbox"]');
+          
+          // Basic fallback values if inputs aren't immediately readable
+          const recipient = recipientInput ? recipientInput.value : "Unknown Recipient";
+          const subject = subjectInput ? subjectInput.value : "No Subject";
+          
           const result = await createTracker(recipient, subject);
 
           if (result.success && result.trackerId) {
-            // Inject tracking pixel into compose body
             const pixel = createPixelElement(result.trackerId);
             composeBody.appendChild(pixel);
-            console.log(
-              `[Tickk Gmail] Pixel injected — Tracker ID: ${result.trackerId}`
-            );
             showTickkToast('Email tracking activated ✓', 'success');
-          } else {
-            console.error('[Tickk Gmail] Tracker creation failed:', result.error);
-            if (result.error === 'Insufficient credits') {
-              showTickkToast('No credits remaining — tracking skipped', 'error');
-            }
           }
         } catch (err) {
           console.error('[Tickk Gmail] Error during send interception:', err);
         }
 
-        // Trigger original send after pixel injection
-        // Small delay to ensure pixel is in DOM before Gmail processes the body
+        // Add a tiny class to prevent infinite loops when we programmatically click it again
+        clickedElement.classList.add('tickk-auto-sending');
+        
         setTimeout(() => {
-          sendBtn.click();
+          // Temporarily remove our listener or bypass it by dispatching a low-level event if standard click() loops
+          const nativeClick = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+          clickedElement.dispatchEvent(nativeClick);
         }, 100);
       },
-      true // Capture phase — fires before Gmail's own handler
+      true 
     );
   }
 
