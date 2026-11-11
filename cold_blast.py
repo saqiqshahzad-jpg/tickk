@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 # ⚙️ CONFIGURATION
 # ==========================================
 # Local testing ke liye localhost, real-world ke liye hum ise ngrok se replace karenge
-BACKEND_URL = "https://tickk-backend.onrender.com"  
+BACKEND_URL = "https://tickk-k5zw.onrender.com"  
 API_KEY = "tk_live_test123"
 
 # SMTP Settings (Gmail/Outlook standard setup)

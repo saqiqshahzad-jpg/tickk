@@ -152,7 +152,7 @@ app.get('/api/auth/google', (req, res) => {
     if (!userId) return res.status(400).send("userId is required");
     
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = 'https://tickk-backend.onrender.com/api/auth/google/callback';
+    const redirectUri = 'https://tickk-k5zw.onrender.com/api/auth/google/callback';
     const scope = encodeURIComponent('https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email');
     
     const state = Buffer.from(JSON.stringify({ userId })).toString('base64');
@@ -170,7 +170,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     try {
         const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
         const userId = decodedState.userId;
-        const redirectUri = 'https://tickk-backend.onrender.com/api/auth/google/callback';
+        const redirectUri = 'https://tickk-k5zw.onrender.com/api/auth/google/callback';
         
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -1040,7 +1040,7 @@ app.post('/api/domains/add', requireUserAuth, async (req, res) => {
             instructions: {
                 cname: {
                     name: 'track',
-                    target: 'tickk-backend.onrender.com'
+                    target: 'tickk-k5zw.onrender.com'
                 },
                 txt: {
                     name: '_tickk-challenge',
@@ -1082,7 +1082,7 @@ app.post('/api/domains/verify', requireUserAuth, async (req, res) => {
         // Verify CNAME
         try {
             const cnameRecords = await dns.promises.resolveCname(`track.${domain_name}`);
-            if (cnameRecords.includes('tickk-backend.onrender.com')) {
+            if (cnameRecords.includes('tickk-k5zw.onrender.com')) {
                 isCnameValid = true;
             }
         } catch (dnsErr) {
