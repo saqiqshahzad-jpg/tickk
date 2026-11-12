@@ -9,23 +9,58 @@ const TICKK_API_BASE = 'https://tickk-k5zw.onrender.com';
  * Retrieve stored auth credentials from chrome.storage.local
  * @returns {Promise<{apiKey: string|null, userId: string|null}>}
  */
+/**
+ * Fallback to extract current logged-in user email from Gmail/Outlook DOM
+ */
+function extractUserEmailFromDOM() {
+  try {
+    // 1. From document.title (e.g., "Inbox (1,524) - saqiqshahzad@gmail.com - Gmail")
+    const titleMatch = document.title.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    if (titleMatch && titleMatch[1]) {
+      return titleMatch[1].trim();
+    }
+    // 2. From Gmail account button / profile hovercard
+    const accountEl = document.querySelector('[aria-label*="@"], [data-hovercard-id*="@"], a[href*="SignOutOptions"]');
+    if (accountEl) {
+      const match = (accountEl.getAttribute('aria-label') || accountEl.getAttribute('data-hovercard-id') || accountEl.textContent || '').match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+/**
+ * Retrieve stored auth credentials from chrome.storage.local
+ * @returns {Promise<{apiKey: string|null, userId: string|null, email: string}>}
+ */
 async function getStoredAuth() {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['tickk_user', 'tickk_opens_count', 'tickk_api_key', 'tickk_user_email'], (result) => {
+    chrome.storage.local.get([
+      'tickk_user',
+      'tickk_opens_count',
+      'tickk_api_key',
+      'tickk_user_email',
+      'userEmail',
+      'email'
+    ], (result) => {
       const user = result.tickk_user;
       let apiKey = result.tickk_api_key || (user ? user.token : null);
-      let email = result.tickk_user_email || (user ? user.email : 'saqiqshahzad@gmail.com');
+      let email = result.tickk_user_email || result.userEmail || result.email || (user ? user.email : null);
 
-      // Auto-fallback for logged-in user key
-      if (!apiKey) {
-        apiKey = 'tk_live_6fb4826a011b569287f92a7b6c8820eca9c25658e4819419';
-        chrome.storage.local.set({ tickk_api_key: apiKey, tickk_user_email: email });
+      if (!email) {
+        email = extractUserEmailFromDOM();
+      }
+
+      if (email && email !== result.tickk_user_email) {
+        chrome.storage.local.set({ tickk_user_email: email });
       }
 
       resolve({
-        apiKey: apiKey,
+        apiKey: apiKey || null,
         userId: user ? user.email : null,
-        email: email,
+        email: email || '',
         opensCount: result.tickk_opens_count || 0
       });
     });
@@ -37,8 +72,8 @@ async function getStoredAuth() {
  * @returns {Promise<boolean>}
  */
 async function isAuthenticated() {
-  const { apiKey } = await getStoredAuth();
-  return !!apiKey;
+  const { apiKey, email } = await getStoredAuth();
+  return !!(apiKey || email);
 }
 
 /**
@@ -52,12 +87,6 @@ async function createTracker(recipient, subject) {
   try {
     const { apiKey, email } = await getStoredAuth();
     console.log("🔥 [Tickk] Fetched API Key:", apiKey, "Email:", email);
-    
-    const hasValidEmail = email && email !== 'Not Connected' && email !== 'Logged Out';
-    if (!apiKey && !hasValidEmail) {
-      console.warn("🔥 [Tickk] Both API Key and Email missing, aborting fetch.");
-      return { success: false, error: 'User not authenticated' };
-    }
 
     console.log("🔥 [Tickk] Sending fetch to:", `${TICKK_API_BASE}/api/track/create`);
 
@@ -65,25 +94,35 @@ async function createTracker(recipient, subject) {
       'Content-Type': 'application/json',
     };
     if (apiKey) headers['x-api-key'] = apiKey;
-    if (hasValidEmail) headers['x-user-email'] = email;
+    if (email) headers['x-user-email'] = email;
 
     const response = await fetch(`${TICKK_API_BASE}/api/track/create`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ recipient, subject, email: hasValidEmail ? email : undefined }),
+      body: JSON.stringify({
+        recipient,
+        subject,
+        email: email || undefined
+      }),
     });
 
     const data = await response.json();
     console.log("🔥 [Tickk] Backend response:", data);
 
-    // If backend generated or returned an API key, cache it for future calls
+    const trackerId = data.tracker_id || data.trackerId;
+
     if (data.apiKey && !apiKey) {
       chrome.storage.local.set({ tickk_api_key: data.apiKey }, () => {
         console.log("🔥 [Tickk] API Key auto-saved to storage:", data.apiKey);
       });
     }
 
-    return data;
+    return {
+      success: data.success !== false,
+      trackerId: trackerId,
+      tracker_id: trackerId,
+      error: data.error
+    };
   } catch (err) {
     console.error('[Tickk] Tracker creation failed:', err);
     return { success: false, error: err.message };

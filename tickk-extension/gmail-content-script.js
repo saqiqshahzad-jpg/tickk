@@ -4,15 +4,13 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 // Auto-capture email from Onboarding redirect URL
 // ═══════════════════════════════════════════════════════════════
 (function captureTickkAuth() {
-  const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
-  const emailFromUrl = urlParams.get('tickk_email');
+  const urlParams = new URLSearchParams(window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''));
+  const emailFromUrl = urlParams.get('tickk_email') || urlParams.get('email') || urlParams.get('user_email');
   if (emailFromUrl) {
-    // Save user email to extension storage
-    chrome.storage.local.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }, () => {
-      console.log('⚡ Tickk Auth Caught From Redirect URL:', emailFromUrl);
-      // URL clean karo taake address bar saaf ho jaye
+    const cleanEmail = decodeURIComponent(emailFromUrl).trim();
+    chrome.storage.local.set({ tickk_user_email: cleanEmail, userEmail: cleanEmail, email: cleanEmail }, () => {
+      console.log('⚡ Tickk Auth Caught From Redirect URL:', cleanEmail);
       window.history.replaceState({}, document.title, window.location.pathname);
-      // location.reload();
     });
   }
 })();
