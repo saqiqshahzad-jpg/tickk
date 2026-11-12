@@ -144,7 +144,7 @@ app.get('/:verification_file.html', (req, res, next) => {
 // ==========================================
 // OAUTH2 FLOWS (Google & Outlook)
 // ==========================================
-const FRONTEND_DASHBOARD_URL = process.env.FRONTEND_DASHBOARD_URL || 'http://localhost:5173/dashboard';
+const FRONTEND_DASHBOARD_URL = process.env.FRONTEND_DASHBOARD_URL || 'https://tickk.online/dashboard';
 
 // --- GOOGLE OAUTH ---
 app.get('/api/auth/google', (req, res) => {
