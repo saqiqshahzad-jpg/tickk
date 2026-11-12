@@ -1236,21 +1236,55 @@ app.get('/api/extension/user-info', async (req, res) => {
 app.post('/api/track/create', async (req, res) => {
     try {
         const apiKey = req.headers['x-api-key'];
-        if (!apiKey) {
-            return res.status(401).json({ success: false, error: 'Unauthorized: Missing x-api-key header' });
+        const userEmail = req.headers['x-user-email'] || req.body.email;
+        let userId = null;
+        let activeApiKey = apiKey;
+
+        if (apiKey) {
+            const { data: keyData } = await supabase
+                .from('api_keys')
+                .select('user_id')
+                .eq('token', apiKey)
+                .single();
+            if (keyData) {
+                userId = keyData.user_id;
+            }
         }
 
-        const { data: keyData, error: keyErr } = await supabase
-            .from('api_keys')
-            .select('user_id')
-            .eq('token', apiKey)
-            .single();
+        // Fallback: If no API key provided, find user by email and get/create their API key
+        if (!userId && userEmail) {
+            const cleanEmail = String(userEmail).trim().toLowerCase();
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id')
+                .ilike('email', cleanEmail)
+                .maybeSingle();
 
-        if (keyErr || !keyData) {
-            return res.status(401).json({ success: false, error: 'Unauthorized: Invalid API Key' });
+            if (profile) {
+                userId = profile.id;
+
+                let { data: keyData } = await supabase
+                    .from('api_keys')
+                    .select('token')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (keyData?.token) {
+                    activeApiKey = keyData.token;
+                } else {
+                    activeApiKey = 'tk_live_' + crypto.randomBytes(24).toString('hex');
+                    await supabase
+                        .from('api_keys')
+                        .insert([{ user_id: userId, token: activeApiKey, name: 'Extension Auto-Sync Key' }]);
+                }
+            }
         }
 
-        const userId = keyData.user_id;
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'Unauthorized: Missing or invalid API Key / Email' });
+        }
         const { recipient, subject } = req.body;
 
         if (!recipient || !subject) {
@@ -1296,9 +1330,11 @@ app.post('/api/track/create', async (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to create tracker' });
         }
 
-        supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', apiKey).then();
+        if (activeApiKey) {
+            supabase.from('api_keys').update({ last_used: new Date().toISOString() }).eq('token', activeApiKey).then();
+        }
 
-        res.json({ success: true, trackerId: tracker.id });
+        res.json({ success: true, trackerId: tracker.id, apiKey: activeApiKey });
     } catch (err) {
         console.error('[TRACK CREATE ERROR]', err);
         res.status(500).json({ success: false, error: 'Internal Server Error' });

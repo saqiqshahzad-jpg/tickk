@@ -41,26 +41,39 @@ async function isAuthenticated() {
 async function createTracker(recipient, subject) {
   console.log("🔥 [Tickk] createTracker is triggered!", recipient, subject);
   try {
-    const { apiKey } = await getStoredAuth();
-    console.log("🔥 [Tickk] Fetched API Key:", apiKey);
-    if (!apiKey) {
-      console.warn("🔥 [Tickk] API Key missing, aborting fetch.");
+    const { apiKey, email } = await getStoredAuth();
+    console.log("🔥 [Tickk] Fetched API Key:", apiKey, "Email:", email);
+    
+    const hasValidEmail = email && email !== 'Not Connected' && email !== 'Logged Out';
+    if (!apiKey && !hasValidEmail) {
+      console.warn("🔥 [Tickk] Both API Key and Email missing, aborting fetch.");
       return { success: false, error: 'User not authenticated' };
     }
 
     console.log("🔥 [Tickk] Sending fetch to:", `${TICKK_API_BASE}/api/track/create`);
 
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+    if (apiKey) headers['x-api-key'] = apiKey;
+    if (hasValidEmail) headers['x-user-email'] = email;
+
     const response = await fetch(`${TICKK_API_BASE}/api/track/create`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({ recipient, subject }),
+      headers,
+      body: JSON.stringify({ recipient, subject, email: hasValidEmail ? email : undefined }),
     });
 
     const data = await response.json();
     console.log("🔥 [Tickk] Backend response:", data);
+
+    // If backend generated or returned an API key, cache it for future calls
+    if (data.apiKey && !apiKey) {
+      chrome.storage.local.set({ tickk_api_key: data.apiKey }, () => {
+        console.log("🔥 [Tickk] API Key auto-saved to storage:", data.apiKey);
+      });
+    }
+
     return data;
   } catch (err) {
     console.error('[Tickk] Tracker creation failed:', err);
