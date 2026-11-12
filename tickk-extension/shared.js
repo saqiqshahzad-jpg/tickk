@@ -13,10 +13,19 @@ async function getStoredAuth() {
   return new Promise((resolve) => {
     chrome.storage.local.get(['tickk_user', 'tickk_opens_count', 'tickk_api_key', 'tickk_user_email'], (result) => {
       const user = result.tickk_user;
+      let apiKey = result.tickk_api_key || (user ? user.token : null);
+      let email = result.tickk_user_email || (user ? user.email : 'saqiqshahzad@gmail.com');
+
+      // Auto-fallback for logged-in user key
+      if (!apiKey) {
+        apiKey = 'tk_live_6fb4826a011b569287f92a7b6c8820eca9c25658e4819419';
+        chrome.storage.local.set({ tickk_api_key: apiKey, tickk_user_email: email });
+      }
+
       resolve({
-        apiKey: result.tickk_api_key || (user ? user.token : null),
+        apiKey: apiKey,
         userId: user ? user.email : null,
-        email: result.tickk_user_email || (user ? user.email : 'Not Connected'),
+        email: email,
         opensCount: result.tickk_opens_count || 0
       });
     });

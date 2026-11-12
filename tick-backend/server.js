@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
@@ -8,7 +8,7 @@ const { Resend } = require('resend');
 console.log("[INIT] API Key loaded:", process.env.RESEND_API_KEY ? "Yes" : "No");
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// ─── Process-Level Crash Handlers (must be registered before anything else) ───
+// â”€â”€â”€ Process-Level Crash Handlers (must be registered before anything else) â”€â”€â”€
 process.on('uncaughtException', (err) => {
     console.error(JSON.stringify({
         timestamp: new Date().toISOString(),
@@ -254,7 +254,7 @@ app.get('/api/auth/outlook/callback', async (req, res) => {
     }
 });
 
-// 1. REGISTER ENDPOINT — Programmatic Script Entry (cold_blast.py integration)
+// 1. REGISTER ENDPOINT â€” Programmatic Script Entry (cold_blast.py integration)
 app.post('/api/trackers/register', requireApiKeyAuth, async (req, res) => {
     const { recipient, subject, link_url } = req.body;
 
@@ -264,7 +264,7 @@ app.post('/api/trackers/register', requireApiKeyAuth, async (req, res) => {
 
     try {
         const { data, error } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .insert([{
                 user_id: req.user_id,
                 recipient,
@@ -330,7 +330,7 @@ app.post('/api/track/dispatch', requireUserAuth, async (req, res) => {
 
         // Insert into trackers pipeline (allow dispatch data pipeline logs for dashboard streams)
         const { data, error } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .insert([{
                 user_id: req.user_id,
                 recipient,
@@ -379,11 +379,11 @@ app.post('/api/track/dispatch', requireUserAuth, async (req, res) => {
     }
 });
 
-// 2. FETCH ENDPOINT — Return Isolated Data to Frontend
+// 2. FETCH ENDPOINT â€” Return Isolated Data to Frontend
 app.get('/api/trackers', requireUserAuth, async (req, res) => {
     try {
         const { data, error } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .select('*')
             .eq('user_id', req.user_id)
             .order('created_at', { ascending: false });
@@ -395,7 +395,7 @@ app.get('/api/trackers', requireUserAuth, async (req, res) => {
     }
 });
 
-// 2b. FETCH API KEYS — Return Isolated Data to Frontend
+// 2b. FETCH API KEYS â€” Return Isolated Data to Frontend
 app.get('/api/keys', requireUserAuth, async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -411,7 +411,7 @@ app.get('/api/keys', requireUserAuth, async (req, res) => {
     }
 });
 
-// 3. PIXEL GATEWAY — CDN Cache Breaker Redirect
+// 3. PIXEL GATEWAY â€” CDN Cache Breaker Redirect
 app.get('/api/track/:tracker_id/pixel.png', (req, res) => {
     const trackerId = req.params.tracker_id;
     const redirectTarget = `/api/telemetry/open?id=${encodeURIComponent(trackerId)}&_t=${Date.now()}`;
@@ -431,7 +431,7 @@ app.get('/api/telemetry/open', async (req, res) => {
     if (!trackerId || trackerId === 'undefined') return returnBeacon(res);
 
     try {
-        const { data: tracker, error: fError } = await supabase.from('trackers').select('*').eq('id', trackerId).maybeSingle();
+        const { data: tracker, error: fError } = await supabase.from('tracked_emails').select('*').eq('id', trackerId).maybeSingle();
         if (fError || !tracker) return returnBeacon(res);
 
         // Security Rule: If tracker is structurally locked (Zero-Credit), do not generate/fire tracking initialization
@@ -454,7 +454,7 @@ app.get('/api/telemetry/open', async (req, res) => {
         if (isProxyBot && tracker.status === 'UNOPENED') {
             proxyFleetCache.set(trackerId, Date.now());
             setTimeout(() => proxyFleetCache.delete(trackerId), 10000);
-            await supabase.from('trackers').update({ status: 'DELIVERED', updated_at: new Date().toISOString() }).eq('id', trackerId);
+            await supabase.from('tracked_emails').update({ status: 'DELIVERED', updated_at: new Date().toISOString() }).eq('id', trackerId);
             return res.status(204).end(); // Forces refresh on human click
         }
 
@@ -480,7 +480,7 @@ app.get('/api/telemetry/open', async (req, res) => {
         }
 
         // Update Tracker Metrics
-        await supabase.from('trackers').update({
+        await supabase.from('tracked_emails').update({
             status: 'OPENED',
             open_count: tracker.open_count + 1,
             updated_at: new Date().toISOString()
@@ -510,14 +510,14 @@ app.get('/api/track/:tracker_id/click', async (req, res) => {
     if (!trackerId || !destinationUrl) return res.status(400).send('Bad Request Parameters');
 
     try {
-        const { data: tracker } = await supabase.from('trackers').select('*').eq('id', trackerId).maybeSingle();
+        const { data: tracker } = await supabase.from('tracked_emails').select('*').eq('id', trackerId).maybeSingle();
         if (tracker) {
             // Security Rule: If tracker is structurally locked, skip tracking logic and just redirect
             if (tracker.is_locked) {
                 return res.redirect(destinationUrl);
             }
 
-            await supabase.from('trackers').update({
+            await supabase.from('tracked_emails').update({
                 status: 'OPENED',
                 click_count: tracker.click_count + 1,
                 open_count: tracker.open_count === 0 ? 1 : tracker.open_count,
@@ -585,7 +585,7 @@ app.post('/api/webhooks/billing', async (req, res) => {
     }
 });
 
-// 7. DASHBOARD STATS — Frontend integration endpoint
+// 7. DASHBOARD STATS â€” Frontend integration endpoint
 app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
     const { userId } = req.params;
     
@@ -596,7 +596,7 @@ app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
 
     try {
         const { data, error } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .select(`
                 *,
                 telemetry_logs (*)
@@ -613,7 +613,7 @@ app.get('/api/stats/:userId', requireUserAuth, async (req, res) => {
     }
 });
 
-// 8. TRACKER LOGS — Fetch telemetry timeline for a specific tracker
+// 8. TRACKER LOGS â€” Fetch telemetry timeline for a specific tracker
 app.get('/api/logs/:trackerId', async (req, res) => {
     const { trackerId } = req.params;
     try {
@@ -631,12 +631,12 @@ app.get('/api/logs/:trackerId', async (req, res) => {
     }
 });
 
-// 8b. PERFORMANCE HEATMAP — Exact timestamps array strictly filtered for user
+// 8b. PERFORMANCE HEATMAP â€” Exact timestamps array strictly filtered for user
 app.get('/api/analytics/performance', requireUserAuth, async (req, res) => {
     try {
         // Step 1: Securely get only THIS user's trackers
         const { data: trackers, error: trackerErr } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .select('id')
             .eq('user_id', req.user_id);
 
@@ -667,12 +667,12 @@ app.get('/api/analytics/performance', requireUserAuth, async (req, res) => {
     }
 });
 
-// 8c. ACTIVITY DISTRIBUTION — When you sent your messages
+// 8c. ACTIVITY DISTRIBUTION â€” When you sent your messages
 app.get('/api/performance/activity-distribution', requireUserAuth, async (req, res) => {
     try {
         // Fetch all trackers (sent messages) for the logged-in user
         const { data: trackers, error: trackerErr } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .select('created_at')
             .eq('user_id', req.user_id);
 
@@ -885,7 +885,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     }
 });
 
-// 10. PASSWORD RESET VIA RESEND (Link Sent flow — mirrors send-otp)
+// 10. PASSWORD RESET VIA RESEND (Link Sent flow â€” mirrors send-otp)
 app.post('/api/auth/reset-password', async (req, res) => {
     console.log(`[TICKK-LOG] Hit /api/auth/reset-password for email: ${req.body.email}`);
     const { email } = req.body;
@@ -1212,7 +1212,7 @@ app.get('/api/extension/user-info', async (req, res) => {
         }
 
         const { data: recentEmails, error: trackersErr } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .select('recipient, subject, status, open_count, updated_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
@@ -1251,18 +1251,20 @@ app.post('/api/track/create', async (req, res) => {
             }
         }
 
-        // Fallback: If no API key provided, find user by email and get/create their API key
+        // Fallback: If no API key provided, find user by email via Supabase Auth Admin
         if (!userId && userEmail) {
             const cleanEmail = String(userEmail).trim().toLowerCase();
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('id')
-                .ilike('email', cleanEmail)
-                .maybeSingle();
+            try {
+                const { data: adminData } = await supabase.auth.admin.listUsers();
+                const matchedUser = adminData?.users?.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+                if (matchedUser) {
+                    userId = matchedUser.id;
+                }
+            } catch (authErr) {
+                console.error('[AUTH ADMIN USER LOOKUP ERROR]', authErr);
+            }
 
-            if (profile) {
-                userId = profile.id;
-
+            if (userId) {
                 let { data: keyData } = await supabase
                     .from('api_keys')
                     .select('token')
@@ -1291,14 +1293,20 @@ app.post('/api/track/create', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Recipient and Subject are required' });
         }
 
-        const { data: profile, error: profileErr } = await supabase
+        let { data: profile, error: profileErr } = await supabase
             .from('profiles')
             .select('credits')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
-        if (profileErr || !profile) {
-            return res.status(500).json({ success: false, error: 'Failed to retrieve user profile' });
+        if (!profile) {
+            // Auto-create profile with starter credits if missing
+            await supabase.from('profiles').insert([{
+                id: userId,
+                credits: 300,
+                plan_tier: 'free'
+            }]);
+            profile = { credits: 300 };
         }
 
         if (profile.credits <= 0) {
@@ -1315,12 +1323,12 @@ app.post('/api/track/create', async (req, res) => {
         }
 
         const { data: tracker, error: trackerErr } = await supabase
-            .from('trackers')
+            .from('tracked_emails')
             .insert([{
                 user_id: userId,
                 recipient,
                 subject,
-                status: 'sent',
+                status: 'UNOPENED',
                 open_count: 0
             }])
             .select()
@@ -1347,7 +1355,7 @@ app.use((err, req, res, next) => {
     res.status(500).send('Internal Server Error');
 });
 
-// ─── Server Startup ───
+// â”€â”€â”€ Server Startup â”€â”€â”€
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(JSON.stringify({
