@@ -16,27 +16,39 @@ window.addEventListener('message', (event) => {
   // Only accept messages from tickk.online
   if (event.origin !== 'https://tickk.online') return;
   
-  if (event.data && event.data.type === 'TICKK_AUTH_SYNC' && event.data.email) {
-    chrome.storage.local.set({ tickk_user_email: event.data.email }, () => {
-      console.log('⚡ TICKK INSTANT SYNC SUCCESS:', event.data.email);
-      // Confirm back to web app that sync is complete
-      window.postMessage({ type: 'TICKK_SYNC_CONFIRMED', email: event.data.email }, '*');
-    });
+  if (event.data && (event.data.type === 'TICKK_AUTH_SYNC' || event.data.type === 'AUTH_TOKEN' || event.data.type === 'TICKK_AUTH_SUCCESS')) {
+    const email = event.data.email;
+    const accessToken = event.data.accessToken || event.data.token;
+    const apiKey = event.data.apiKey;
+    const userId = event.data.userId;
 
-    // Also pass the accessToken to the background script to exchange for API Key
-    if (event.data.accessToken) {
+    if (email) {
+      chrome.storage.local.set({ tickk_user_email: email }, () => {
+        console.log('⚡ TICKK INSTANT SYNC EMAIL:', email);
+      });
+    }
+
+    if (apiKey) {
+      chrome.storage.local.set({ tickk_api_key: apiKey }, () => {
+        console.log('⚡ TICKK API KEY STORED DIRECTLY');
+      });
+    }
+
+    if (accessToken) {
       try {
         chrome.runtime.sendMessage({
           type: 'AUTH_TOKEN_FROM_SYNC',
-          accessToken: event.data.accessToken,
-          userId: event.data.userId,
-          email: event.data.email
+          accessToken: accessToken,
+          userId: userId,
+          email: email
         });
         console.log('⚡ TICKK AUTH_TOKEN_FROM_SYNC sent to background');
       } catch (e) {
         console.warn('Could not send AUTH_TOKEN_FROM_SYNC:', e);
       }
     }
+
+    window.postMessage({ type: 'TICKK_SYNC_CONFIRMED', email }, '*');
   }
 });
 

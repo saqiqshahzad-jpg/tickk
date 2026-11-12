@@ -429,6 +429,13 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
             const pixel = createPixelElement(result.trackerId);
             composeBody.appendChild(pixel);
             showTickkToast('Email tracking activated ✓', 'success');
+          } else {
+            console.error('[Tickk Gmail] Tracker creation failed:', result.error);
+            if (result.error === 'User not authenticated' || result.error === 'Not authenticated') {
+              showTickkToast('⚠️ Please sign in to Tickk to track emails!', 'error');
+            } else if (result.error === 'Insufficient credits') {
+              showTickkToast('No credits remaining — tracking skipped', 'error');
+            }
           }
         } catch (err) {
           console.error('[Tickk Gmail] Error during send interception:', err);
