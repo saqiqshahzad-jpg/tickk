@@ -39,12 +39,17 @@ async function isAuthenticated() {
  * @returns {Promise<{success: boolean, trackerId?: string, error?: string}>}
  */
 async function createTracker(recipient, subject) {
-  const { apiKey } = await getStoredAuth();
-  if (!apiKey) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
+  console.log("🔥 [Tickk] createTracker is triggered!", recipient, subject);
   try {
+    const { apiKey } = await getStoredAuth();
+    console.log("🔥 [Tickk] Fetched API Key:", apiKey);
+    if (!apiKey) {
+      console.warn("🔥 [Tickk] API Key missing, aborting fetch.");
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    console.log("🔥 [Tickk] Sending fetch to:", `${TICKK_API_BASE}/api/track/create`);
+
     const response = await fetch(`${TICKK_API_BASE}/api/track/create`, {
       method: 'POST',
       headers: {
@@ -55,6 +60,7 @@ async function createTracker(recipient, subject) {
     });
 
     const data = await response.json();
+    console.log("🔥 [Tickk] Backend response:", data);
     return data;
   } catch (err) {
     console.error('[Tickk] Tracker creation failed:', err);
