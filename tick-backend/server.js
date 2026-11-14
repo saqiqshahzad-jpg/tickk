@@ -1285,7 +1285,6 @@ app.post('/api/track/create', async (req, res) => {
                 const { data: firstProfile } = await supabase
                     .from('profiles')
                     .select('id')
-                    .order('updated_at', { ascending: false })
                     .limit(1)
                     .maybeSingle();
                 if (firstProfile?.id) {
@@ -1295,7 +1294,7 @@ app.post('/api/track/create', async (req, res) => {
 
             // Hard fallback if profiles table query had any issue
             if (!userId) {
-                userId = '0037f0b6-a24a-4f0d-a9d6-6539000e3023'; // saqiqshahzad@gmail.com
+                userId = '95d466f0-67ba-4745-9a47-b9f010710487';
             }
         }
 
