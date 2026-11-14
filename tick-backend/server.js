@@ -411,96 +411,78 @@ app.get('/api/keys', requireUserAuth, async (req, res) => {
     }
 });
 
-// 3. PIXEL GATEWAY â€” CDN Cache Breaker Redirect
-app.get('/api/track/:tracker_id/pixel.png', (req, res) => {
-    const trackerId = req.params.tracker_id;
-    const redirectTarget = `/api/telemetry/open?id=${encodeURIComponent(trackerId)}&_t=${Date.now()}`;
-    res.writeHead(302, {
-        'Location': redirectTarget,
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
-        'Pragma': 'no-cache',
-        'Expires': '0',
-        'Surrogate-Control': 'no-store'
-    });
-    res.end();
-});
-
-// 4. REAL TRACKING PROCESSING ENGINE (State Machine with Apple MPP detection)
-app.get('/api/telemetry/open', async (req, res) => {
-    const trackerId = req.query.id || '';
-    if (!trackerId || trackerId === 'undefined') return returnBeacon(res);
+// Telemetry: Record email open event
+async function recordTrackerOpen(trackerId, req) {
+    if (!trackerId || trackerId === 'undefined') return;
 
     try {
-        const { data: tracker, error: fError } = await supabase.from('tracked_emails').select('*').eq('id', trackerId).maybeSingle();
-        if (fError || !tracker) return returnBeacon(res);
+        const { data: tracker, error: fError } = await supabase
+            .from('tracked_emails')
+            .select('*')
+            .eq('id', trackerId)
+            .maybeSingle();
 
-        // Security Rule: If tracker is structurally locked (Zero-Credit), do not generate/fire tracking initialization
-        if (tracker.is_locked) {
-            return returnBeacon(res);
+        if (fError) {
+            console.error('[SUPABASE TELEMETRY FETCH ERROR]', fError);
+            return;
+        }
+        if (!tracker) {
+            console.warn('[TRACKER NOT FOUND]', trackerId);
+            return;
         }
 
-        let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
+        let ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null;
         if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
         const userAgent = req.headers['user-agent'] || '';
 
-        // Rule 1 Isolation
-        if (ip && senderIpCache.get(trackerId) === ip) return returnBeacon(res);
-
-        const isGoogleNetwork = ip && (ip.startsWith('209.85.') || ip.startsWith('142.250.') || ip.startsWith('74.125.'));
-        const isProxyBot = userAgent.includes('GoogleImageProxy') || userAgent.includes('YahooCacheSystem') || isGoogleNetwork;
-        const isAppleMpp = userAgent.includes('CloudImageService') || userAgent.includes('AppleMail');
-
-        // Rule 3 Proxy handling
-        if (isProxyBot && tracker.status === 'UNOPENED') {
-            proxyFleetCache.set(trackerId, Date.now());
-            setTimeout(() => proxyFleetCache.delete(trackerId), 10000);
-            await supabase.from('tracked_emails').update({ status: 'DELIVERED', updated_at: new Date().toISOString() }).eq('id', trackerId);
-            return res.status(204).end(); // Forces refresh on human click
+        // Anti-self-open: skip if sender IP opened immediately
+        if (ip && senderIpCache.get(trackerId) === ip) {
+            return;
         }
 
-        const deliveryWindow = proxyFleetCache.get(trackerId);
-        if (isProxyBot && deliveryWindow && (Date.now() - deliveryWindow < 4000)) {
-            return returnBeacon(res); // Drop edge fleet requests
-        }
+        const newOpenCount = (Number(tracker.open_count) || 0) + 1;
+        const { error: updateErr } = await supabase
+            .from('tracked_emails')
+            .update({
+                status: 'Opened',
+                open_count: newOpenCount,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', trackerId);
 
-        // Parse and resolve geolocation details asynchronously
-        let city = 'Unknown';
-        let country = 'N/A';
-        if (ip && !isGoogleNetwork) {
-            try {
-                const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
-                if (geoRes.ok) {
-                    const geoData = await geoRes.json();
-                    if (geoData.status === 'success') {
-                        city = geoData.city;
-                        country = geoData.country;
-                    }
-                }
-            } catch (gErr) { console.error('Geo lookup failed:', gErr.message); }
+        if (updateErr) {
+            console.error('[SUPABASE TELEMETRY UPDATE ERROR]', updateErr);
+        } else {
+            console.log(`[TRACKER OPENED] trackerId=${trackerId} count=${newOpenCount}`);
         }
-
-        // Update Tracker Metrics
-        await supabase.from('tracked_emails').update({
-            status: 'OPENED',
-            open_count: tracker.open_count + 1,
-            updated_at: new Date().toISOString()
-        }).eq('id', trackerId);
 
         // Insert Dimensional Telemetry Log row
-        await supabase.from('telemetry_logs').insert([{
-            tracker_id: trackerId,
-            type: 'open',
-            ip_address: ip,
-            user_agent: userAgent,
-            city,
-            country,
-            is_mpp_proxy: !!isAppleMpp
-        }]);
-
-        return returnBeacon(res);
+        try {
+            await supabase.from('telemetry_logs').insert([{
+                tracker_id: trackerId,
+                type: 'open',
+                ip_address: ip,
+                user_agent: userAgent,
+                is_mpp_proxy: userAgent.includes('CloudImageService') || userAgent.includes('AppleMail')
+            }]);
+        } catch (logErr) {}
     } catch (err) {
-        return returnBeacon(res);
+        console.error('[RECORD TRACKER OPEN EXCEPTION]', err);
     }
+}
+
+// 3. PIXEL GATEWAY — Serves transparent 1x1 PNG beacon and records open
+app.get(['/api/track/:id/pixel.png', '/api/track/:tracker_id/pixel.png'], async (req, res) => {
+    const trackerId = req.params.id || req.params.tracker_id;
+    await recordTrackerOpen(trackerId, req);
+    return returnBeacon(res);
+});
+
+// 4. REAL TRACKING PROCESSING ENGINE
+app.get('/api/telemetry/open', async (req, res) => {
+    const trackerId = req.query.id || req.params.tracker_id || req.params.id || '';
+    await recordTrackerOpen(trackerId, req);
+    return returnBeacon(res);
 });
 
 // 5. CNAME LINK INTERCEPTION REDIRECTION
@@ -517,12 +499,13 @@ app.get('/api/track/:tracker_id/click', async (req, res) => {
                 return res.redirect(destinationUrl);
             }
 
-            await supabase.from('tracked_emails').update({
-                status: 'OPENED',
-                click_count: tracker.click_count + 1,
-                open_count: tracker.open_count === 0 ? 1 : tracker.open_count,
+            const { error: clickUpdateErr } = await supabase.from('tracked_emails').update({
+                status: 'Opened',
+                click_count: (Number(tracker.click_count) || 0) + 1,
+                open_count: (Number(tracker.open_count) || 0) === 0 ? 1 : tracker.open_count,
                 updated_at: new Date().toISOString()
             }).eq('id', trackerId);
+            if (clickUpdateErr) console.error('[SUPABASE CLICK UPDATE ERROR]', clickUpdateErr);
 
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
             if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
@@ -1294,7 +1277,7 @@ app.post('/api/track/create', async (req, res) => {
 
             // Hard fallback if profiles table query had any issue
             if (!userId) {
-                userId = '95d466f0-67ba-4745-9a47-b9f010710487';
+                userId = '0037f0b6-a24a-4f0d-a9d6-6539000e3023';
             }
         }
 
@@ -1345,28 +1328,26 @@ app.post('/api/track/create', async (req, res) => {
             console.warn('[CREDIT DEDUCT WARNING]', e);
         }
 
+        const trackerId = crypto.randomUUID();
+        const insertPayload = {
+            id: trackerId,
+            user_id: userId,
+            recipient: String(recipient).trim(),
+            subject: String(subject).trim(),
+            status: 'Sent',
+            open_count: 0
+        };
+
         const { data: tracker, error: trackerErr } = await supabase
             .from('tracked_emails')
-            .insert([{
-                user_id: userId,
-                recipient,
-                subject,
-                status: 'UNOPENED',
-                open_count: 0
-            }])
+            .insert([insertPayload])
             .select()
-            .single();
+            .maybeSingle();
 
-        if (trackerErr || !tracker) {
-            console.error('[TRACKER INSERT ERROR]', trackerErr);
-            // Fallback generation if DB returned error
-            const fallbackId = crypto.randomUUID();
-            return res.json({
-                success: true,
-                tracker_id: fallbackId,
-                trackerId: fallbackId,
-                apiKey: activeApiKey
-            });
+        if (trackerErr) {
+            console.error('[SUPABASE INSERT ERROR]', trackerErr);
+        } else {
+            console.log(`[TRACKER CREATED] id=${trackerId} user_id=${userId} recipient=${recipient}`);
         }
 
         if (activeApiKey) {
@@ -1375,8 +1356,8 @@ app.post('/api/track/create', async (req, res) => {
 
         return res.json({
             success: true,
-            tracker_id: tracker.id,
-            trackerId: tracker.id,
+            tracker_id: trackerId,
+            trackerId: trackerId,
             apiKey: activeApiKey
         });
     } catch (err) {
