@@ -422,20 +422,28 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
             ? crypto.randomUUID() 
             : ('tk_' + Math.random().toString(36).substring(2) + Date.now().toString(36));
 
-          // Inject pixel into composeBody instantly
+          // 1. Inject tracking pixel into composeBody instantly
           const pixel = createPixelElement(trackerId);
           composeBody.appendChild(pixel);
+          TickkLog.pixelInjected(trackerId);
 
-          // Asynchronously register tracker in background without delaying email send
+          // 2. Log Email Dispatch with high visibility
+          TickkLog.dispatch(recipient, subject, trackerId);
+
+          // 3. Asynchronously register tracker in background without delaying email send
           createTracker(recipient, subject, trackerId)
             .then(res => {
-              if (res && res.error) console.warn('[Tickk Gmail] Tracker register notice:', res.error);
+              if (res && res.error) {
+                TickkLog.error('Server Registration Notice', res.error);
+              } else {
+                TickkLog.success('Server Pipeline Confirmed', `Active tracking for: ${recipient} [Status: Sent, Open Count: 0]`);
+              }
             })
-            .catch(err => console.error('[Tickk Gmail] Tracker background register error:', err));
+            .catch(err => TickkLog.error('Background Registration', err));
 
           showTickkToast('Email tracking activated ✓', 'success');
         } catch (err) {
-          console.error('[Tickk Gmail] Error during send interception:', err);
+          TickkLog.error('Send Interception Exception', err);
         }
 
         // Add a tiny class to prevent infinite loops when we programmatically click it again

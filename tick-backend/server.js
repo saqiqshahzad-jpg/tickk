@@ -41,9 +41,97 @@ app.use(express.json({
     }
 }));
 
-// 1. Global Request Logger
+// ═══════════════════════════════════════════════════════════════
+// ANSI Terminal Colors for High-Visibility Render / Terminal Logs
+// ═══════════════════════════════════════════════════════════════
+const LOG_COLORS = {
+    reset: "\x1b[0m",
+    bright: "\x1b[1m",
+    dim: "\x1b[2m",
+    cyan: "\x1b[36m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    blue: "\x1b[34m",
+    magenta: "\x1b[35m",
+    red: "\x1b[31m",
+    bgBlue: "\x1b[44m",
+    bgGreen: "\x1b[42m",
+    bgMagenta: "\x1b[45m",
+    bgYellow: "\x1b[43m",
+    bgRed: "\x1b[41m",
+    bgCyan: "\x1b[46m"
+};
+
+const logger = {
+    dispatch: (details) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `\n${LOG_COLORS.bgBlue}${LOG_COLORS.bright} 📤 TICKK DISPATCH ${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.green}${LOG_COLORS.bright}Email Dispatched & Tracker Created!${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Tracker ID:${LOG_COLORS.reset} ${LOG_COLORS.bright}${details.trackerId}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Recipient:${LOG_COLORS.reset}  ${LOG_COLORS.bright}${LOG_COLORS.yellow}${details.recipient}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Subject:${LOG_COLORS.reset}    "${details.subject}"\n` +
+            `  ${LOG_COLORS.cyan}Sender IP:${LOG_COLORS.reset}  ${details.senderIp || 'unknown'}\n` +
+            `  ${LOG_COLORS.cyan}Status:${LOG_COLORS.reset}     ${LOG_COLORS.green}Sent (Status = 'Sent', Open Count = 0)${LOG_COLORS.reset}\n`
+        );
+    },
+    open: (details) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `\n${LOG_COLORS.bgGreen}${LOG_COLORS.bright} 🔔 EMAIL OPENED [Count: #${details.openCount}] ${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.bright}${LOG_COLORS.green}Recipient Read The Email!${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Tracker ID:${LOG_COLORS.reset} ${details.trackerId}\n` +
+            `  ${LOG_COLORS.cyan}Recipient:${LOG_COLORS.reset}  ${LOG_COLORS.bright}${LOG_COLORS.yellow}${details.recipient || 'N/A'}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Subject:${LOG_COLORS.reset}    "${details.subject || 'N/A'}"\n` +
+            `  ${LOG_COLORS.cyan}Open Count:${LOG_COLORS.reset} ${LOG_COLORS.bright}${LOG_COLORS.yellow}#${details.openCount}${LOG_COLORS.reset} time(s)\n` +
+            `  ${LOG_COLORS.cyan}Reader IP:${LOG_COLORS.reset}  ${details.ip || 'unknown'}\n` +
+            `  ${LOG_COLORS.cyan}Device:${LOG_COLORS.reset}     ${details.userAgent ? details.userAgent.slice(0, 80) : 'Unknown'}\n`
+        );
+    },
+    click: (details) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `\n${LOG_COLORS.bgMagenta}${LOG_COLORS.bright} 🔗 LINK CLICKED [Count: #${details.clickCount}] ${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Tracker ID:${LOG_COLORS.reset}  ${details.trackerId}\n` +
+            `  ${LOG_COLORS.cyan}Recipient:${LOG_COLORS.reset}   ${LOG_COLORS.bright}${LOG_COLORS.yellow}${details.recipient || 'N/A'}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Destination:${LOG_COLORS.reset} ${LOG_COLORS.blue}${details.url}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Click Count:${LOG_COLORS.reset} ${LOG_COLORS.yellow}#${details.clickCount}${LOG_COLORS.reset}\n`
+        );
+    },
+    filter: (details) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `${LOG_COLORS.yellow}🛡️  [TICKK FILTER - PREVENTED FALSE OPEN]${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ` +
+            `Reason: ${LOG_COLORS.bright}${details.reason}${LOG_COLORS.reset} | ` +
+            `Tracker: ${details.trackerId} | IP: ${details.ip} | Age: ${details.age}s`
+        );
+    },
+    error: (scope, err) => {
+        const time = new Date().toLocaleTimeString();
+        console.error(
+            `\n${LOG_COLORS.bgRed}${LOG_COLORS.bright} ❌ ERROR [${scope}] ${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.red}${err?.message || err}${LOG_COLORS.reset}\n`
+        );
+    },
+    success: (scope, msg) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `${LOG_COLORS.green}✅ [SUCCESS] [${scope}]${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ${msg}`
+        );
+    }
+};
+
+// 1. Global Colored Request Logger
 app.use((req, res, next) => {
-    console.log(`[TICKK-LOG] ${new Date().toISOString()} | Method: ${req.method} | URL: ${req.url}`);
+    const time = new Date().toLocaleTimeString();
+    const methodColor = req.method === 'GET' ? LOG_COLORS.cyan : req.method === 'POST' ? LOG_COLORS.green : LOG_COLORS.yellow;
+    console.log(`${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ${methodColor}${LOG_COLORS.bright}${req.method}${LOG_COLORS.reset} ${req.url}`);
     next();
 });
 
@@ -422,7 +510,11 @@ async function recordTrackerOpen(trackerId, req) {
             .eq('id', trackerId)
             .maybeSingle();
 
-        if (fError || !tracker) {
+        if (fError) {
+            logger.error('DB_FETCH', fError);
+            return;
+        }
+        if (!tracker) {
             return;
         }
 
@@ -433,7 +525,7 @@ async function recordTrackerOpen(trackerId, req) {
         // 1. FILTER: Anti-Self-Open (Sender's own browser / IP)
         const cachedSenderIp = senderIpCache.get(trackerId);
         if (ip && cachedSenderIp && ip === cachedSenderIp) {
-            console.log(`[IGNORE SELF-OPEN] ip=${ip} matches sender for tracker=${trackerId}`);
+            logger.filter({ reason: 'Self-Open (Sender IP matched)', trackerId, ip, age: 0 });
             return;
         }
 
@@ -451,12 +543,17 @@ async function recordTrackerOpen(trackerId, req) {
 
         // 3. Quarantine Window: Within 90 seconds of email creation
         const createdAtMs = tracker.created_at ? new Date(tracker.created_at).getTime() : Date.now();
-        const ageSeconds = (Date.now() - createdAtMs) / 1000;
+        const ageSeconds = ((Date.now() - createdAtMs) / 1000).toFixed(1);
 
         if (ageSeconds < 90) {
             // Immediate pre-fetch scan by Googlebot/proxy crawler during email sending or delivery
             if (isProxyBot || (cachedSenderIp && ip === cachedSenderIp)) {
-                console.log(`[IGNORE PRE-FETCH SCAN] age=${ageSeconds.toFixed(1)}s ip=${ip} bot=${isProxyBot} tracker=${trackerId}`);
+                logger.filter({
+                    reason: isProxyBot ? 'Googlebot / Proxy Pre-fetch Scan' : 'Sender network pre-fetch',
+                    trackerId,
+                    ip,
+                    age: ageSeconds
+                });
                 return;
             }
         }
@@ -472,9 +569,16 @@ async function recordTrackerOpen(trackerId, req) {
             .eq('id', trackerId);
 
         if (updateErr) {
-            console.error('[SUPABASE TELEMETRY UPDATE ERROR]', updateErr);
+            logger.error('TELEMETRY_UPDATE', updateErr);
         } else {
-            console.log(`[GENUINE TRACKER OPENED] trackerId=${trackerId} count=${newOpenCount} ip=${ip}`);
+            logger.open({
+                trackerId,
+                recipient: tracker.recipient,
+                subject: tracker.subject,
+                openCount: newOpenCount,
+                ip,
+                userAgent
+            });
         }
 
         // Insert Dimensional Telemetry Log row
@@ -526,7 +630,17 @@ app.get('/api/track/:tracker_id/click', async (req, res) => {
                 open_count: (Number(tracker.open_count) || 0) === 0 ? 1 : tracker.open_count,
                 updated_at: new Date().toISOString()
             }).eq('id', trackerId);
-            if (clickUpdateErr) console.error('[SUPABASE CLICK UPDATE ERROR]', clickUpdateErr);
+
+            if (clickUpdateErr) {
+                logger.error('CLICK_UPDATE', clickUpdateErr);
+            } else {
+                logger.click({
+                    trackerId,
+                    recipient: tracker.recipient,
+                    url: destinationUrl,
+                    clickCount: (Number(tracker.click_count) || 0) + 1
+                });
+            }
 
             let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
             if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
@@ -1357,9 +1471,14 @@ app.post('/api/track/create', async (req, res) => {
             .maybeSingle();
 
         if (trackerErr) {
-            console.error('[SUPABASE INSERT ERROR]', trackerErr);
+            logger.error('TRACKER_INSERT', trackerErr);
         } else {
-            console.log(`[TRACKER CREATED] id=${trackerId} user_id=${userId} recipient=${recipient}`);
+            logger.dispatch({
+                trackerId,
+                recipient,
+                subject,
+                senderIp
+            });
         }
 
         if (activeApiKey) {
@@ -1373,8 +1492,7 @@ app.post('/api/track/create', async (req, res) => {
             apiKey: activeApiKey
         });
     } catch (err) {
-        console.error('[TRACK CREATE ERROR]', err);
-        // Even on exception, NEVER fail the user! Return success with a generated UUID!
+        logger.error('TRACK_CREATE_EXCEPTION', err);
         const fallbackId = crypto.randomUUID();
         return res.json({
             success: true,

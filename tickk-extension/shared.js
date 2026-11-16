@@ -5,6 +5,70 @@
 
 const TICKK_API_BASE = 'https://tickk-k5zw.onrender.com';
 
+// ═══════════════════════════════════════════════════════════════
+// Tickk High-Visibility Colored Console Logger
+// ═══════════════════════════════════════════════════════════════
+const TickkLog = {
+  dispatch: (recipient, subject, trackerId) => {
+    console.log(
+      '%c 📤 TICKK %c EMAIL DISPATCHED %c To: %c' + recipient + ' %c| Subject: "%c' + subject + '%c" | ID: %c' + trackerId,
+      'background: #2563eb; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #059669; color: #ffffff; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px;',
+      'color: #94a3b8; font-weight: normal;',
+      'color: #38bdf8; font-weight: bold;',
+      'color: #94a3b8; font-weight: normal;',
+      'color: #facc15; font-weight: bold;',
+      'color: #94a3b8; font-weight: normal;',
+      'color: #a78bfa; font-weight: bold;'
+    );
+  },
+  pixelInjected: (trackerId) => {
+    console.log(
+      '%c 🎯 TICKK %c PIXEL INJECTED %c Tracker ID: %c' + trackerId,
+      'background: #7c3aed; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #18181b; color: #a78bfa; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px; border: 1px solid #4c1d95;',
+      'color: #94a3b8;',
+      'color: #c4b5fd; font-weight: bold;'
+    );
+  },
+  open: (trackerId, openCount, recipient, subject) => {
+    console.log(
+      '%c 🔔 TICKK %c OPEN DETECTED [Count: #' + openCount + '] %c To: %c' + (recipient || 'N/A') + ' %c| "%c' + (subject || 'N/A') + '%c" | ID: ' + trackerId,
+      'background: #16a34a; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #15803d; color: #ffffff; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px;',
+      'color: #94a3b8;',
+      'color: #38bdf8; font-weight: bold;',
+      'color: #94a3b8;',
+      'color: #facc15; font-weight: bold;',
+      'color: #94a3b8;'
+    );
+  },
+  success: (action, detail = '') => {
+    console.log(
+      '%c ✓ TICKK %c ' + action + ' %c ' + detail,
+      'background: #10b981; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #18181b; color: #34d399; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px; border: 1px solid #064e3b;',
+      'color: #a7f3d0;'
+    );
+  },
+  error: (action, err = '') => {
+    console.error(
+      '%c ✕ TICKK %c ERROR: ' + action + ' %c ' + (err?.message || err || ''),
+      'background: #dc2626; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #18181b; color: #f87171; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px; border: 1px solid #7f1d1d;',
+      'color: #fca5a5;'
+    );
+  },
+  info: (action, detail = '') => {
+    console.log(
+      '%c ⚡ TICKK %c ' + action + ' %c ' + detail,
+      'background: #3b82f6; color: #ffffff; font-weight: bold; border-radius: 4px 0 0 4px; padding: 2px 6px; font-size: 11px;',
+      'background: #18181b; color: #60a5fa; font-weight: bold; border-radius: 0 4px 4px 0; padding: 2px 6px; font-size: 11px; border: 1px solid #1e3a8a;',
+      'color: #bfdbfe;'
+    );
+  }
+};
+
 /**
  * Retrieve stored auth credentials from chrome.storage.local
  * @returns {Promise<{apiKey: string|null, userId: string|null}>}
@@ -88,12 +152,10 @@ async function isAuthenticated() {
  * @returns {Promise<{success: boolean, trackerId?: string, error?: string}>}
  */
 async function createTracker(recipient, subject, trackerId = null) {
-  console.log("🔥 [Tickk] createTracker is triggered!", recipient, subject, trackerId);
+  TickkLog.info('Tracker Request Initiated', `Recipient: ${recipient} | Subject: "${subject}" | ID: ${trackerId || 'auto-generating'}`);
   try {
     const { apiKey, email } = await getStoredAuth();
-    console.log("🔥 [Tickk] Fetched API Key:", apiKey, "Email:", email);
-
-    console.log("🔥 [Tickk] Sending fetch to:", `${TICKK_API_BASE}/api/track/create`);
+    TickkLog.info('Auth Credentials', `API Key: ${apiKey ? (apiKey.slice(0, 12) + '...') : 'none'} | User Email: ${email || 'none'}`);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -118,13 +180,17 @@ async function createTracker(recipient, subject, trackerId = null) {
     });
 
     const data = await response.json();
-    console.log("🔥 [Tickk] Backend response:", data);
-
     const finalTrackerId = data.tracker_id || data.trackerId || trackerId;
+
+    if (data.success !== false) {
+      TickkLog.success('Tracker Registered On Server', `ID: ${finalTrackerId} | Status: Sent | Recipient: ${recipient}`);
+    } else {
+      TickkLog.error('Server Returned Notice', data.error);
+    }
 
     if (data.apiKey && !apiKey) {
       chrome.storage.local.set({ tickk_api_key: data.apiKey }, () => {
-        console.log("🔥 [Tickk] API Key auto-saved to storage:", data.apiKey);
+        TickkLog.success('Storage Updated', `Auto-synced API Key to extension storage`);
       });
     }
 
@@ -135,7 +201,7 @@ async function createTracker(recipient, subject, trackerId = null) {
       error: data.error
     };
   } catch (err) {
-    console.error('[Tickk] Tracker creation failed:', err);
+    TickkLog.error('Tracker Network Call Failed', err);
     return { success: false, trackerId: trackerId, tracker_id: trackerId, error: err.message };
   }
 }
