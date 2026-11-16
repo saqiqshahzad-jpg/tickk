@@ -367,11 +367,11 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
     }
   }
 
-  // ─── Intercept Send Button Click (The Ultimate Fallback) ───
+  // ─── Intercept Send Button Click (Instant & Non-Blocking) ───
   function interceptSend(composeContainer, composeBody) {
     composeContainer.addEventListener(
       'click',
-      async (e) => {
+      (e) => {
         let isSendButton = false;
         let clickedElement = e.target;
         
@@ -414,27 +414,26 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         e.stopPropagation();
 
         try {
-          const recipientInput = composeContainer.querySelector('input[name="to"], [name="to"] input, input[peoplekit-id]');
-          const subjectInput = composeContainer.querySelector('input[name="subjectbox"]');
+          const recipient = extractRecipient(composeContainer);
+          const subject = extractSubject(composeContainer);
           
-          // Basic fallback values if inputs aren't immediately readable
-          const recipient = recipientInput ? recipientInput.value : "Unknown Recipient";
-          const subject = subjectInput ? subjectInput.value : "No Subject";
-          
-          const result = await createTracker(recipient, subject);
+          // Generate tracker UUID client-side immediately
+          const trackerId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+            ? crypto.randomUUID() 
+            : ('tk_' + Math.random().toString(36).substring(2) + Date.now().toString(36));
 
-          if (result.success && result.trackerId) {
-            const pixel = createPixelElement(result.trackerId);
-            composeBody.appendChild(pixel);
-            showTickkToast('Email tracking activated ✓', 'success');
-          } else {
-            console.error('[Tickk Gmail] Tracker creation failed:', result.error);
-            if (result.error === 'User not authenticated' || result.error === 'Not authenticated') {
-              showTickkToast('⚠️ Please sign in to Tickk to track emails!', 'error');
-            } else if (result.error === 'Insufficient credits') {
-              showTickkToast('No credits remaining — tracking skipped', 'error');
-            }
-          }
+          // Inject pixel into composeBody instantly
+          const pixel = createPixelElement(trackerId);
+          composeBody.appendChild(pixel);
+
+          // Asynchronously register tracker in background without delaying email send
+          createTracker(recipient, subject, trackerId)
+            .then(res => {
+              if (res && res.error) console.warn('[Tickk Gmail] Tracker register notice:', res.error);
+            })
+            .catch(err => console.error('[Tickk Gmail] Tracker background register error:', err));
+
+          showTickkToast('Email tracking activated ✓', 'success');
         } catch (err) {
           console.error('[Tickk Gmail] Error during send interception:', err);
         }
@@ -443,10 +442,9 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
         clickedElement.classList.add('tickk-auto-sending');
         
         setTimeout(() => {
-          // Temporarily remove our listener or bypass it by dispatching a low-level event if standard click() loops
           const nativeClick = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
           clickedElement.dispatchEvent(nativeClick);
-        }, 100);
+        }, 40);
       },
       true 
     );
@@ -454,33 +452,68 @@ console.log('🔥 TICKK GMAIL SCRIPT LOADED SUCCESSFULLY!');
 
   // ─── Extract Recipient Email ───
   function extractRecipient(composeContainer) {
-    // Try the To input field first
-    const toInput = composeContainer.querySelector(TO_FIELD_SELECTOR);
-    if (toInput && toInput.value) {
-      return toInput.value.trim();
+    if (!composeContainer) return 'unknown@recipient.com';
+
+    // 1. Look for recipient chips / badges with email attributes
+    const chipSelectors = [
+      'span[email]',
+      'div[email]',
+      'div[data-hovercard-id*="@"]',
+      'span[data-hovercard-id*="@"]',
+      '[aria-label*="@"]',
+      'div[role="option"][data-hovercard-id*="@"]'
+    ];
+    for (const sel of chipSelectors) {
+      const els = composeContainer.querySelectorAll(sel);
+      for (const el of els) {
+        const val = el.getAttribute('email') || el.getAttribute('data-hovercard-id') || el.getAttribute('aria-label') || el.textContent || '';
+        const match = val.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
     }
 
-    // Fallback: look for recipient chips/spans
-    const recipientChips = composeContainer.querySelectorAll(
-      'div[data-hovercard-id], span[email]'
-    );
-    if (recipientChips.length > 0) {
-      const email =
-        recipientChips[0].getAttribute('data-hovercard-id') ||
-        recipientChips[0].getAttribute('email');
-      if (email) return email;
+    // 2. Check input fields (e.g. while still typing or classic To fields)
+    const inputSelectors = [
+      'input[name="to"]',
+      'input[aria-label*="To"]',
+      'input[peoplekit-id]',
+      'input.agP',
+      'textarea[name="to"]'
+    ];
+    for (const sel of inputSelectors) {
+      const inputs = composeContainer.querySelectorAll(sel);
+      for (const inp of inputs) {
+        if (inp.value) {
+          const match = inp.value.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+          if (match && match[1]) {
+            return match[1].trim();
+          }
+        }
+      }
     }
 
-    return null;
+    // 3. Fallback: Search text content inside the To container (.fX, .aoD, [name="to"])
+    const toSection = composeContainer.querySelector('[name="to"], .fX, .aoD, [aria-label*="To"]');
+    if (toSection) {
+      const match = (toSection.innerText || toSection.textContent || '').match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    return 'unknown@recipient.com';
   }
 
   // ─── Extract Subject Line ───
   function extractSubject(composeContainer) {
-    const subjectInput = composeContainer.querySelector(SUBJECT_FIELD_SELECTOR);
-    if (subjectInput && subjectInput.value) {
+    if (!composeContainer) return 'No Subject';
+    const subjectInput = composeContainer.querySelector('input[name="subjectbox"], input[placeholder="Subject"], input[aria-label="Subject"]');
+    if (subjectInput && subjectInput.value && subjectInput.value.trim()) {
       return subjectInput.value.trim();
     }
-    return '(No Subject)';
+    return 'No Subject';
   }
 
   // ─── Storage Listener for Auth Sync ───

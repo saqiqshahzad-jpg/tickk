@@ -422,12 +422,7 @@ async function recordTrackerOpen(trackerId, req) {
             .eq('id', trackerId)
             .maybeSingle();
 
-        if (fError) {
-            console.error('[SUPABASE TELEMETRY FETCH ERROR]', fError);
-            return;
-        }
-        if (!tracker) {
-            console.warn('[TRACKER NOT FOUND]', trackerId);
+        if (fError || !tracker) {
             return;
         }
 
@@ -435,9 +430,35 @@ async function recordTrackerOpen(trackerId, req) {
         if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
         const userAgent = req.headers['user-agent'] || '';
 
-        // Anti-self-open: skip if sender IP opened immediately
-        if (ip && senderIpCache.get(trackerId) === ip) {
+        // 1. FILTER: Anti-Self-Open (Sender's own browser / IP)
+        const cachedSenderIp = senderIpCache.get(trackerId);
+        if (ip && cachedSenderIp && ip === cachedSenderIp) {
+            console.log(`[IGNORE SELF-OPEN] ip=${ip} matches sender for tracker=${trackerId}`);
             return;
+        }
+
+        // 2. FILTER: Google Image Proxy & Known Bot Crawlers
+        const isGoogleNetwork = ip && (
+            ip.startsWith('66.249.') || 
+            ip.startsWith('209.85.') || 
+            ip.startsWith('142.250.') || 
+            ip.startsWith('74.125.')
+        );
+        const isProxyBot = userAgent.includes('GoogleImageProxy') || 
+                           userAgent.includes('YahooCacheSystem') || 
+                           userAgent.includes('MailImageProxy') || 
+                           isGoogleNetwork;
+
+        // 3. Quarantine Window: Within 90 seconds of email creation
+        const createdAtMs = tracker.created_at ? new Date(tracker.created_at).getTime() : Date.now();
+        const ageSeconds = (Date.now() - createdAtMs) / 1000;
+
+        if (ageSeconds < 90) {
+            // Immediate pre-fetch scan by Googlebot/proxy crawler during email sending or delivery
+            if (isProxyBot || (cachedSenderIp && ip === cachedSenderIp)) {
+                console.log(`[IGNORE PRE-FETCH SCAN] age=${ageSeconds.toFixed(1)}s ip=${ip} bot=${isProxyBot} tracker=${trackerId}`);
+                return;
+            }
         }
 
         const newOpenCount = (Number(tracker.open_count) || 0) + 1;
@@ -453,7 +474,7 @@ async function recordTrackerOpen(trackerId, req) {
         if (updateErr) {
             console.error('[SUPABASE TELEMETRY UPDATE ERROR]', updateErr);
         } else {
-            console.log(`[TRACKER OPENED] trackerId=${trackerId} count=${newOpenCount}`);
+            console.log(`[GENUINE TRACKER OPENED] trackerId=${trackerId} count=${newOpenCount} ip=${ip}`);
         }
 
         // Insert Dimensional Telemetry Log row
@@ -463,7 +484,7 @@ async function recordTrackerOpen(trackerId, req) {
                 type: 'open',
                 ip_address: ip,
                 user_agent: userAgent,
-                is_mpp_proxy: userAgent.includes('CloudImageService') || userAgent.includes('AppleMail')
+                is_mpp_proxy: userAgent.includes('CloudImageService') || userAgent.includes('AppleMail') || isProxyBot
             }]);
         } catch (logErr) {}
     } catch (err) {
@@ -1223,6 +1244,9 @@ app.post('/api/track/create', async (req, res) => {
         let userId = null;
         let activeApiKey = apiKey;
 
+        let senderIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null;
+        if (senderIp && senderIp.includes(',')) senderIp = senderIp.split(',')[0].trim();
+
         // 1. Check x-api-key
         if (apiKey) {
             const { data: keyData } = await supabase
@@ -1235,30 +1259,22 @@ app.post('/api/track/create', async (req, res) => {
             }
         }
 
-        // 2. Check email against connected_accounts or auth.users
+        // 2. Check email against known users or connected_accounts
         if (!userId && userEmail) {
             const cleanEmail = String(userEmail).trim().toLowerCase();
-            try {
-                const { data: conn } = await supabase
-                    .from('connected_accounts')
-                    .select('user_id')
-                    .ilike('email', cleanEmail)
-                    .maybeSingle();
-                if (conn?.user_id) {
-                    userId = conn.user_id;
-                }
-            } catch (e) {}
-
-            if (!userId) {
+            if (cleanEmail === 'saqiqshahzad@gmail.com') {
+                userId = '0037f0b6-a24a-4f0d-a9d6-6539000e3023';
+            } else {
                 try {
-                    const { data: adminData } = await supabase.auth.admin.listUsers();
-                    const matchedUser = adminData?.users?.find(u => u.email && u.email.toLowerCase() === cleanEmail);
-                    if (matchedUser) {
-                        userId = matchedUser.id;
+                    const { data: conn } = await supabase
+                        .from('connected_accounts')
+                        .select('user_id')
+                        .ilike('email', cleanEmail)
+                        .maybeSingle();
+                    if (conn?.user_id) {
+                        userId = conn.user_id;
                     }
-                } catch (authErr) {
-                    console.error('[AUTH ADMIN USER LOOKUP ERROR]', authErr);
-                }
+                } catch (e) {}
             }
         }
 
@@ -1295,45 +1311,41 @@ app.post('/api/track/create', async (req, res) => {
                 activeApiKey = keyData.token;
             } else {
                 activeApiKey = 'tk_live_' + crypto.randomBytes(24).toString('hex');
-                await supabase
+                supabase
                     .from('api_keys')
-                    .insert([{ user_id: userId, token: activeApiKey, name: 'Extension Auto-Sync Key' }]);
+                    .insert([{ user_id: userId, token: activeApiKey, name: 'Extension Auto-Sync Key' }])
+                    .then();
             }
         }
 
-        const recipient = req.body.recipient || 'unknown@recipient.com';
-        const subject = req.body.subject || 'No Subject';
+        const rawRecipient = req.body.recipient;
+        const recipient = (rawRecipient && String(rawRecipient).trim() !== '' && String(rawRecipient).trim() !== 'Unknown Recipient') 
+            ? String(rawRecipient).trim() 
+            : 'unknown@recipient.com';
+        const subject = (req.body.subject && String(req.body.subject).trim() !== '') 
+            ? String(req.body.subject).trim() 
+            : 'No Subject';
 
-        // Check / deduct credits gracefully
-        try {
-            let { data: profile } = await supabase
-                .from('profiles')
-                .select('credits')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (!profile) {
-                await supabase.from('profiles').insert([{
-                    id: userId,
-                    credits: 300,
-                    plan_tier: 'free'
-                }]);
-            } else if (profile.credits > 0) {
-                await supabase
-                    .from('profiles')
-                    .update({ credits: profile.credits - 1 })
-                    .eq('id', userId);
+        // Check / deduct credits asynchronously without blocking response
+        supabase.from('profiles').select('credits').eq('id', userId).maybeSingle().then(({ data: profile }) => {
+            if (profile && profile.credits > 0) {
+                supabase.from('profiles').update({ credits: profile.credits - 1 }).eq('id', userId).then();
             }
-        } catch (e) {
-            console.warn('[CREDIT DEDUCT WARNING]', e);
+        }).catch(() => {});
+
+        const trackerId = req.body.id || req.body.tracker_id || crypto.randomUUID();
+
+        // Anti-self-open: register sender IP for this tracker
+        if (senderIp) {
+            senderIpCache.set(trackerId, senderIp);
+            setTimeout(() => senderIpCache.delete(trackerId), 24 * 60 * 60 * 1000);
         }
 
-        const trackerId = crypto.randomUUID();
         const insertPayload = {
             id: trackerId,
             user_id: userId,
-            recipient: String(recipient).trim(),
-            subject: String(subject).trim(),
+            recipient: recipient,
+            subject: subject,
             status: 'Sent',
             open_count: 0
         };

@@ -87,8 +87,8 @@ async function isAuthenticated() {
  * @param {string} subject - Email subject line
  * @returns {Promise<{success: boolean, trackerId?: string, error?: string}>}
  */
-async function createTracker(recipient, subject) {
-  console.log("🔥 [Tickk] createTracker is triggered!", recipient, subject);
+async function createTracker(recipient, subject, trackerId = null) {
+  console.log("🔥 [Tickk] createTracker is triggered!", recipient, subject, trackerId);
   try {
     const { apiKey, email } = await getStoredAuth();
     console.log("🔥 [Tickk] Fetched API Key:", apiKey, "Email:", email);
@@ -101,20 +101,26 @@ async function createTracker(recipient, subject) {
     if (apiKey) headers['x-api-key'] = apiKey;
     if (email) headers['x-user-email'] = email;
 
+    const payload = {
+      recipient,
+      subject,
+      email: email || undefined
+    };
+    if (trackerId) {
+      payload.id = trackerId;
+      payload.tracker_id = trackerId;
+    }
+
     const response = await fetch(`${TICKK_API_BASE}/api/track/create`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        recipient,
-        subject,
-        email: email || undefined
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     console.log("🔥 [Tickk] Backend response:", data);
 
-    const trackerId = data.tracker_id || data.trackerId;
+    const finalTrackerId = data.tracker_id || data.trackerId || trackerId;
 
     if (data.apiKey && !apiKey) {
       chrome.storage.local.set({ tickk_api_key: data.apiKey }, () => {
@@ -124,13 +130,13 @@ async function createTracker(recipient, subject) {
 
     return {
       success: data.success !== false,
-      trackerId: trackerId,
-      tracker_id: trackerId,
+      trackerId: finalTrackerId,
+      tracker_id: finalTrackerId,
       error: data.error
     };
   } catch (err) {
     console.error('[Tickk] Tracker creation failed:', err);
-    return { success: false, error: err.message };
+    return { success: false, trackerId: trackerId, tracker_id: trackerId, error: err.message };
   }
 }
 
