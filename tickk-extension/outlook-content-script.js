@@ -4,16 +4,16 @@
 // ═══════════════════════════════════════════════════════════════
 
 (function autoSyncFromUrl() {
-  const urlParams = new URLSearchParams(window.location.search || window.location.hash.split('?')[1]);
-  const emailFromUrl = urlParams.get('tickk_email');
-  if (emailFromUrl) {
-    chrome.storage.local.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }, () => {
-      console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
-      // URL clean karo taake parameter gayab ho jaye
-      window.history.replaceState({}, document.title, window.location.pathname);
-      // location.reload();
-    });
-  }
+  try {
+    const urlParams = new URLSearchParams(window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''));
+    const emailFromUrl = urlParams.get('tickk_email');
+    if (emailFromUrl) {
+      SafeStorage.set({ tickk_user_email: decodeURIComponent(emailFromUrl) }).then(() => {
+        console.log('⚡ TICKK AUTO-SYNC SUCCESS:', emailFromUrl);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      });
+    }
+  } catch (e) {}
 })();
 
 (function () {
@@ -46,14 +46,18 @@
     console.log('[Tickk Outlook] Content script initialized.');
 
     // Listen for background token syncs to update header dynamically without reloading
-    chrome.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace === 'local' && changes.tickk_api_key) {
-        const isNowAuthed = !!changes.tickk_api_key.newValue;
-        const oldHeader = document.querySelector('#tickk-header-badge');
-        if (oldHeader) oldHeader.remove();
-        injectHeaderWidget(isNowAuthed);
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+        chrome.storage.onChanged.addListener((changes, namespace) => {
+          if (namespace === 'local' && changes.tickk_api_key) {
+            const isNowAuthed = !!changes.tickk_api_key.newValue;
+            const oldHeader = document.querySelector('#tickk-header-badge');
+            if (oldHeader) oldHeader.remove();
+            injectHeaderWidget(isNowAuthed);
+          }
+        });
       }
-    });
+    } catch (e) {}
   }
 
   // ─── MutationObserver: Watch for Compose Panes ───
@@ -126,8 +130,8 @@
     }
 
     const widget = createHeaderWidget(authed, (btn) => {
-      chrome.storage.local.get(['tickk_api_key'], (res) => {
-        if (res.tickk_api_key) {
+      SafeStorage.get(['tickk_api_key']).then((res) => {
+        if (res && res.tickk_api_key) {
           window.open('https://tickk.online/dashboard', '_blank');
         } else {
           window.open('https://tickk.online/onboarding', '_blank');
@@ -327,12 +331,16 @@
   }
 
   // ─── Storage Listener for Auth Sync ───
-  chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && changes.tickk_api_key && changes.tickk_api_key.newValue) {
-      console.log('[Tickk Outlook] Auth synced from storage! Initializing...');
-      init();
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+        if (namespace === 'local' && changes.tickk_api_key && changes.tickk_api_key.newValue) {
+          console.log('[Tickk Outlook] Auth synced from storage! Initializing...');
+          init();
+        }
+      });
     }
-  });
+  } catch (e) {}
 
   // ─── Boot ───
   if (document.readyState === 'loading') {

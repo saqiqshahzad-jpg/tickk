@@ -22,13 +22,13 @@ window.addEventListener('message', (event) => {
     const apiKey = event.data.apiKey;
     const userId = event.data.userId;
 
-    if (email) {
+    if (email && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({ tickk_user_email: email }, () => {
         console.log('⚡ TICKK INSTANT SYNC EMAIL:', email);
       });
     }
 
-    if (apiKey) {
+    if (apiKey && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({ tickk_api_key: apiKey }, () => {
         console.log('⚡ TICKK API KEY STORED DIRECTLY');
       });
@@ -64,7 +64,7 @@ function autoSyncUserSession() {
       const accessToken = data?.access_token || data?.session?.access_token || data?.currentSession?.access_token;
       const userId = data?.user?.id || data?.currentSession?.user?.id;
 
-      if (email) {
+      if (email && typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         chrome.storage.local.set({ tickk_user_email: email }, () => {
           console.log('⚡ Tickk Auto-Sync (polling):', email);
         });

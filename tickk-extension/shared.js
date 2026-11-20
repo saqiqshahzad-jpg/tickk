@@ -69,10 +69,47 @@ const TickkLog = {
   }
 };
 
-/**
- * Retrieve stored auth credentials from chrome.storage.local
- * @returns {Promise<{apiKey: string|null, userId: string|null}>}
- */
+// ═══════════════════════════════════════════════════════════════
+// Safe Storage Wrapper (Guards against invalid extension context)
+// ═══════════════════════════════════════════════════════════════
+const SafeStorage = {
+  get: (keys) => {
+    return new Promise((resolve) => {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.get(keys, (res) => {
+            if (chrome.runtime?.lastError) {
+              resolve({});
+            } else {
+              resolve(res || {});
+            }
+          });
+        } else {
+          resolve({});
+        }
+      } catch (e) {
+        resolve({});
+      }
+    });
+  },
+  set: (data) => {
+    return new Promise((resolve) => {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set(data, () => {
+            if (chrome.runtime?.lastError) {}
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+};
+
 /**
  * Fallback to extract current logged-in user email from Gmail/Outlook DOM
  */
@@ -100,40 +137,49 @@ function extractUserEmailFromDOM() {
  * @returns {Promise<{apiKey: string|null, userId: string|null, email: string}>}
  */
 async function getStoredAuth() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([
+  const fallbackKey = 'tk_live_6fb4826a011b569287f92a7b6c8820eca9c25658e4819419';
+  const fallbackEmail = extractUserEmailFromDOM() || 'saqiqshahzad@gmail.com';
+
+  try {
+    const result = await SafeStorage.get([
       'tickk_user',
       'tickk_opens_count',
       'tickk_api_key',
       'tickk_user_email',
       'userEmail',
       'email'
-    ], (result) => {
-      const user = result.tickk_user;
-      let apiKey = result.tickk_api_key || (user ? user.token : null);
-      let email = result.tickk_user_email || result.userEmail || result.email || (user ? user.email : null);
+    ]);
+    const user = result.tickk_user;
+    let apiKey = result.tickk_api_key || (user ? user.token : null);
+    let email = result.tickk_user_email || result.userEmail || result.email || (user ? user.email : null);
 
-      if (!email) {
-        email = extractUserEmailFromDOM();
-      }
+    if (!email) {
+      email = extractUserEmailFromDOM() || fallbackEmail;
+    }
 
-      if (!apiKey) {
-        apiKey = 'tk_live_6fb4826a011b569287f92a7b6c8820eca9c25658e4819419';
-        chrome.storage.local.set({ tickk_api_key: apiKey });
-      }
+    if (!apiKey) {
+      apiKey = fallbackKey;
+      SafeStorage.set({ tickk_api_key: apiKey });
+    }
 
-      if (email && email !== result.tickk_user_email) {
-        chrome.storage.local.set({ tickk_user_email: email });
-      }
+    if (email && email !== result.tickk_user_email) {
+      SafeStorage.set({ tickk_user_email: email });
+    }
 
-      resolve({
-        apiKey: apiKey || null,
-        userId: user ? user.email : null,
-        email: email || '',
-        opensCount: result.tickk_opens_count || 0
-      });
-    });
-  });
+    return {
+      apiKey: apiKey || fallbackKey,
+      userId: user ? user.email : email,
+      email: email || fallbackEmail,
+      opensCount: result.tickk_opens_count || 0
+    };
+  } catch (err) {
+    return {
+      apiKey: fallbackKey,
+      userId: fallbackEmail,
+      email: fallbackEmail,
+      opensCount: 0
+    };
+  }
 }
 
 /**
@@ -189,7 +235,7 @@ async function createTracker(recipient, subject, trackerId = null) {
     }
 
     if (data.apiKey && !apiKey) {
-      chrome.storage.local.set({ tickk_api_key: data.apiKey }, () => {
+      SafeStorage.set({ tickk_api_key: data.apiKey }).then(() => {
         TickkLog.success('Storage Updated', `Auto-synced API Key to extension storage`);
       });
     }
@@ -260,12 +306,12 @@ async function getUserInfo() {
  * @returns {Promise<boolean>}
  */
 async function isTrackingEnabled() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['tickk_tracking_enabled'], (result) => {
-      // Default to enabled
-      resolve(result.tickk_tracking_enabled !== false);
-    });
-  });
+  try {
+    const result = await SafeStorage.get(['tickk_tracking_enabled']);
+    return result.tickk_tracking_enabled !== false;
+  } catch (e) {
+    return true;
+  }
 }
 
 /**

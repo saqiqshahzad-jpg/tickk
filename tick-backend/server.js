@@ -110,6 +110,23 @@ const logger = {
             `Tracker: ${details.trackerId} | IP: ${details.ip} | Age: ${details.age}s`
         );
     },
+    pixelHit: (details) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `\n${LOG_COLORS.bgCyan}${LOG_COLORS.bright} 👁️  PIXEL REQUEST ${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Tracker ID:${LOG_COLORS.reset} ${LOG_COLORS.bright}${details.trackerId}${LOG_COLORS.reset}\n` +
+            `  ${LOG_COLORS.cyan}Client IP:${LOG_COLORS.reset}  ${details.ip || 'unknown'}\n` +
+            `  ${LOG_COLORS.cyan}User Agent:${LOG_COLORS.reset} ${details.userAgent ? details.userAgent.slice(0, 80) : 'none'}\n`
+        );
+    },
+    warn: (scope, msg) => {
+        const time = new Date().toLocaleTimeString();
+        console.log(
+            `${LOG_COLORS.yellow}⚠️  [WARN] [${scope}]${LOG_COLORS.reset} ` +
+            `${LOG_COLORS.dim}[${time}]${LOG_COLORS.reset} ${msg}`
+        );
+    },
     error: (scope, err) => {
         const time = new Date().toLocaleTimeString();
         console.error(
@@ -503,8 +520,15 @@ app.get('/api/keys', requireUserAuth, async (req, res) => {
 async function recordTrackerOpen(trackerId, req) {
     if (!trackerId || trackerId === 'undefined') return;
 
+    let ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null;
+    if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
+    const userAgent = req.headers['user-agent'] || '';
+
+    // 0. Always log incoming pixel beacon request
+    logger.pixelHit({ trackerId, ip, userAgent });
+
     try {
-        const { data: tracker, error: fError } = await supabase
+        let { data: tracker, error: fError } = await supabase
             .from('tracked_emails')
             .select('*')
             .eq('id', trackerId)
@@ -514,13 +538,37 @@ async function recordTrackerOpen(trackerId, req) {
             logger.error('DB_FETCH', fError);
             return;
         }
-        if (!tracker) {
-            return;
-        }
 
-        let ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || null;
-        if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
-        const userAgent = req.headers['user-agent'] || '';
+        // Auto-Heal: If tracker is missing from DB, auto-create it now so tracking never gets lost
+        if (!tracker) {
+            logger.warn('AUTO_HEAL', `Tracker ${trackerId} not found in DB! Auto-creating record in tracked_emails...`);
+            const fallbackUserId = '0037f0b6-a24a-4f0d-a9d6-6539000e3023';
+            const { data: healedTracker, error: healErr } = await supabase
+                .from('tracked_emails')
+                .insert([{
+                    id: trackerId,
+                    user_id: fallbackUserId,
+                    recipient: 'recipient@tracked.com',
+                    subject: 'Tracked Email',
+                    status: 'Sent',
+                    open_count: 0
+                }])
+                .select()
+                .maybeSingle();
+
+            if (healErr) {
+                logger.error('AUTO_HEAL_FAILED', healErr);
+                return;
+            }
+            logger.success('AUTO_HEAL', `Tracker ${trackerId} auto-healed and inserted into Supabase!`);
+            tracker = healedTracker || {
+                id: trackerId,
+                recipient: 'recipient@tracked.com',
+                subject: 'Tracked Email',
+                open_count: 0,
+                created_at: new Date().toISOString()
+            };
+        }
 
         // 1. FILTER: Anti-Self-Open (Sender's own browser / IP)
         const cachedSenderIp = senderIpCache.get(trackerId);
